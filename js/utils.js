@@ -12,9 +12,18 @@ class GameUtils {
      * @param {number} duration - 显示时长(ms)，默认3000ms
      */
     static showMessage(message, type = 'info', duration = 3000) {
-        console.log(`[GameUtils] showMessage: [${type}] ${message}`);
-        // TODO: Stage 1 - 实现UI消息提示
-        // 暂时使用console.log代替
+        const msgEl = document.createElement('div');
+        msgEl.className = `game-message message-${type}`;
+        msgEl.textContent = message;
+        
+        msgEl.style.animation = 'slideIn 0.3s ease';
+        
+        document.body.appendChild(msgEl);
+        
+        setTimeout(() => {
+            msgEl.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => msgEl.remove(), 300);
+        }, duration);
     }
 
     /**

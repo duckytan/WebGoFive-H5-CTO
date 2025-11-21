@@ -44,12 +44,12 @@ python3 -m http.server 8080
 
 ## 📊 开发进度
 
-### 总体进度: 12.5% (1/8 阶段完成)
+### 总体进度: 25% (2/8 阶段完成)
 
 | 阶段 | 内容 | 状态 | 完成时间 |
 |------|------|------|----------|
 | **阶段0** | 环境准备 | ✅ 已完成 | 2025-01-20 |
-| **阶段1** | 核心功能 | ⏳ 待开始 | - |
+| **阶段1** | 核心功能 | ✅ 已完成 | 2025-01-20 |
 | **阶段2** | 规则完善 | ⏳ 待开始 | - |
 | **阶段3** | AI系统 | ⏳ 待开始 | - |
 | **阶段4** | 存档回放 | ⏳ 待开始 | - |
@@ -68,8 +68,8 @@ gomoku-game/
 ├── index.html              # 主页面
 ├── js/                     # JavaScript模块
 │   ├── utils.js           # 工具函数模块 ✅
-│   ├── game-core.js       # 游戏核心引擎 🚧
-│   ├── board-renderer.js  # Canvas渲染器 🚧
+│   ├── game-core.js       # 游戏核心引擎 ✅
+│   ├── board-renderer.js  # Canvas渲染器 ✅
 │   ├── demo.js            # UI控制器 ✅
 │   ├── ai-advanced.js     # 高级AI (待开发)
 │   ├── game-save-load.js  # 存档管理 (待开发)
@@ -116,11 +116,11 @@ GameUtils.deepClone(obj); // 深拷贝对象
 管理棋盘状态、落子逻辑、胜负判定、禁手检测。
 
 ```javascript
-// 示例 (Stage 1 将实现)
+// 示例
 const game = new GomokuGame();
 game.placePiece(7, 7);  // 落子
 game.checkWin(7, 7);     // 检查胜负
-game.checkForbidden(7, 7); // 检查禁手
+game.undo();            // 悔棋
 ```
 
 ### SimpleBoardRenderer - 渲染器
@@ -128,8 +128,10 @@ game.checkForbidden(7, 7); // 检查禁手
 Canvas棋盘渲染、鼠标交互、动画效果。
 
 ```javascript
-// 示例 (Stage 1 将实现)
-const renderer = new SimpleBoardRenderer(canvas, game);
+// 示例
+const renderer = new SimpleBoardRenderer(canvas, game, {
+    onMove: (result) => console.log(result)
+});
 renderer.render(); // 渲染棋盘
 ```
 
@@ -152,6 +154,7 @@ renderer.render(); // 渲染棋盘
 - [验收方案](./ACCEPTANCE_PLAN.md) - 分阶段验收标准和流程
 - [进度日志](./PROGRESS_LOG.md) - 实时更新的开发进度
 - [阶段0验收报告](./STAGE0_ACCEPTANCE.md) - 环境准备验收结果
+- [阶段1验收报告](./STAGE1_ACCEPTANCE.md) - 核心功能验收结果
 
 ### 技术文档
 
@@ -185,8 +188,8 @@ renderer.render(); // 渲染棋盘
 
 ## 🎮 游戏模式
 
-### PvP - 双人对战 (待开发)
-两名玩家轮流落子，体验传统五子棋对局。
+### PvP - 双人对战 ✅
+两名玩家轮流落子，体验传统五子棋对局。已实现完整的五连判胜逻辑和胜利线高亮显示。
 
 ### PvE - 人机对战 (待开发)
 与AI对战，支持4种难度：
@@ -232,6 +235,22 @@ game-save-load.js → game-replay.js → vcf-practice.js → demo.js
 ---
 
 ## 📝 更新日志
+
+### v1.0.0 (2025-01-20) - Stage 1 完成
+
+**新增**:
+- ✅ GameUtils 消息提示UI与工具方法完善
+- ✅ GomokuGame 核心落子/判胜/悔棋逻辑
+- ✅ SimpleBoardRenderer Canvas渲染、悬停预览、胜利线高亮
+- ✅ InterfaceDemo UI控制器（新游戏、状态面板）
+- ✅ 样式与动画增强（消息提示、信息面板）
+- ✅ 文档更新（README、开发计划、验收计划、进度日志）
+
+**验收**:
+- ✅ 阶段1核心功能验收通过
+- ✅ 控制台无错误/警告
+- ✅ Canvas 15x15 棋盘可交互
+- ✅ PvP 模式完整可玩
 
 ### v0.1.0 (2025-01-20) - Stage 0 完成
 
@@ -286,6 +305,6 @@ game-save-load.js → game-replay.js → vcf-practice.js → demo.js
 
 ---
 
-**当前版本**: v0.1.0 (Stage 0)  
+**当前版本**: v1.0.0 (Stage 1)  
 **最后更新**: 2025-01-20  
 **开发团队**: AI Development Team

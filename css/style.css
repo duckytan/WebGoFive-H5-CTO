@@ -170,10 +170,70 @@ button:disabled {
     color: #667eea;
 }
 
+/* ===== 消息提示 ===== */
+.game-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 16px 24px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 10000;
+    max-width: 400px;
+}
+
+.message-success {
+    background: #10b981;
+    color: white;
+}
+
+.message-error {
+    background: #ef4444;
+    color: white;
+}
+
+.message-warning {
+    background: #f59e0b;
+    color: white;
+}
+
+.message-info {
+    background: #3b82f6;
+    color: white;
+}
+
+.info-item {
+    margin-bottom: 8px;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #555;
+    margin-right: 8px;
+}
+
+.info-value {
+    color: #333;
+}
+
+.info-value.game-over {
+    color: #e74c3c;
+    font-weight: bold;
+}
+
 /* ===== 响应式设计 ===== */
 @media (max-width: 768px) {
     body {
         padding: 10px;
+    }
+    
+    .game-message {
+        right: 10px;
+        top: 10px;
+        max-width: calc(100% - 20px);
+        font-size: 14px;
     }
 
     .app-container {

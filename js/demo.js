@@ -1,6 +1,7 @@
 /**
  * InterfaceDemo - UI控制器
  * 负责初始化应用、绑定事件、协调各模块
+ * @version 1.0.0
  */
 
 class InterfaceDemo {
@@ -11,17 +12,21 @@ class InterfaceDemo {
         // 获取DOM元素
         this.initDOMElements();
 
-        // 初始化游戏实例（占位）
+        // 初始化游戏实例
         this.game = new GomokuGame({ boardSize: 15 });
 
-        // 初始化渲染器（占位）
-        this.renderer = null; // Stage 1 实现
+        // 初始化渲染器
+        this.renderer = new SimpleBoardRenderer(this.canvas, this.game, {
+            onMove: (result) => this.handleMoveResult(result)
+        });
 
         // 绑定事件
         this.bindEvents();
 
         // 更新状态显示
         this.updateStatusDisplay();
+
+        GameUtils.showMessage('欢迎来到H5五子棋！黑方先手。', 'info', 2000);
     }
 
     /**
@@ -56,6 +61,10 @@ class InterfaceDemo {
         if (!this.canvas || !this.newGameButton || !this.statusPanel) {
             throw new Error('[InterfaceDemo] 关键DOM元素未找到');
         }
+
+        this.currentMode = 'PvP';
+        this.modeDisplayText = '';
+        this.updateModeDisplay();
     }
 
     /**
@@ -63,43 +72,95 @@ class InterfaceDemo {
      */
     bindEvents() {
         this.newGameButton.addEventListener('click', () => {
-            this.handleNewGame();
+            this.startNewGame();
         });
     }
 
     /**
-     * 处理"新游戏"按钮点击
+     * 处理渲染器回调结果
+     * @param {Object} result - 游戏返回结果
      */
-    handleNewGame() {
-        alert('新游戏功能将在 Stage 1 实现！');
+    handleMoveResult(result) {
+        if (!result || !result.success) {
+            return;
+        }
+
+        this.updateStatusDisplay();
+
+        if (result.data.gameOver) {
+            const winnerText = result.data.winner === 1 ? '黑方' : '白方';
+            GameUtils.showMessage(`🎉 ${winnerText}获胜！`, 'success', 4000);
+            if (this.renderer) {
+                this.renderer.setInteractive(false);
+            }
+        }
+    }
+
+    /**
+     * 开始新游戏
+     */
+    startNewGame() {
+        this.game.reset();
+        if (this.renderer) {
+            this.renderer.winHighlight = null;
+            this.renderer.setInteractive(true);
+            this.renderer.render();
+        }
+        this.updateStatusDisplay();
+        GameUtils.showMessage('新游戏开始，黑方先手。', 'info');
+    }
+
+    /**
+     * 更新模式显示信息
+     */
+    updateModeDisplay() {
+        const modeMap = {
+            PvP: 'PvP - 双人对战'
+        };
+        this.modeDisplayText = modeMap[this.currentMode] || this.currentMode;
     }
 
     /**
      * 更新状态显示
      */
     updateStatusDisplay() {
-        if (this.statusPanel) {
-            this.statusPanel.innerHTML = `
-                <div class="status-item">
-                    <strong>当前阶段:</strong> Stage 0 - 环境准备
-                </div>
-                <div class="status-item">
-                    <strong>模块状态:</strong> 
-                    GameUtils ✅ | GomokuGame ✅ | SimpleBoardRenderer ✅ | InterfaceDemo ✅
-                </div>
-                <div class="status-item">
-                    <strong>下一步:</strong> Stage 1 - 实现核心游戏逻辑
-                </div>
-            `;
+        if (!this.statusPanel) {
+            return;
         }
+
+        const gameState = this.game.getGameState();
+        const currentPlayerText = gameState.gameOver
+            ? (gameState.winner === 1 ? '黑方获胜' : '白方获胜')
+            : (gameState.currentPlayer === 1 ? '黑方回合' : '白方回合');
+
+        const moveCountText = `${gameState.moveCount} 步`;
+
+        this.statusPanel.innerHTML = `
+            <div class="info-item">
+                <span class="info-label">当前阶段:</span>
+                <span class="info-value">Stage 1 - 核心功能 ✅</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">当前模式:</span>
+                <span class="info-value">${this.modeDisplayText}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">当前状态:</span>
+                <span class="info-value ${gameState.gameOver ? 'game-over' : ''}">${currentPlayerText}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">总步数:</span>
+                <span class="info-value">${moveCountText}</span>
+            </div>
+        `;
     }
 }
 
 const DEMO_MODULE_INFO = {
     name: 'InterfaceDemo',
-    version: '0.1.0',
+    version: '1.0.0',
     dependencies: ['GameUtils', 'GomokuGame', 'SimpleBoardRenderer'],
-    description: 'UI控制器 (Stage 0 占位版)'
+    description: 'UI控制器'
 };
 
 InterfaceDemo.__moduleInfo = DEMO_MODULE_INFO;
