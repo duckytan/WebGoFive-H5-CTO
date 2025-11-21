@@ -27,6 +27,8 @@ class SimpleBoardRenderer {
         this.hoverY = -1;
         this.isInteractive = true;
         this.winHighlight = null;
+        this.forbiddenHighlight = null;
+        this.forbiddenTimeoutId = null;
 
         this.initCanvas();
         this.setupEventListeners();
@@ -112,6 +114,7 @@ class SimpleBoardRenderer {
         this.drawPieces();
         this.drawHoverPreview();
         this.drawWinHighlight();
+        this.drawForbiddenHighlight();
     }
 
     drawBoard() {
@@ -230,13 +233,66 @@ class SimpleBoardRenderer {
         this.ctx.lineWidth = 1;
     }
 
+    drawForbiddenHighlight() {
+        if (!this.forbiddenHighlight) {
+            return;
+        }
+        const { x, y } = this.forbiddenHighlight;
+        const { canvasX, canvasY } = this.getCanvasPosition(x, y);
+        const radius = this.CELL_SIZE * 0.45;
+
+        this.ctx.save();
+        this.ctx.strokeStyle = '#ef4444';
+        this.ctx.lineWidth = 3;
+        this.ctx.beginPath();
+        this.ctx.arc(canvasX, canvasY, radius, 0, Math.PI * 2);
+        this.ctx.stroke();
+        this.ctx.beginPath();
+        this.ctx.moveTo(canvasX - radius * 0.6, canvasY - radius * 0.6);
+        this.ctx.lineTo(canvasX + radius * 0.6, canvasY + radius * 0.6);
+        this.ctx.moveTo(canvasX + radius * 0.6, canvasY - radius * 0.6);
+        this.ctx.lineTo(canvasX - radius * 0.6, canvasY + radius * 0.6);
+        this.ctx.stroke();
+        this.ctx.restore();
+    }
+
+    highlightForbiddenPosition(x, y, result) {
+        if (this.forbiddenTimeoutId) {
+            clearTimeout(this.forbiddenTimeoutId);
+            this.forbiddenTimeoutId = null;
+        }
+        this.forbiddenHighlight = {
+            x,
+            y,
+            type: result?.data?.forbiddenType || 'FORBIDDEN'
+        };
+        this.render();
+        this.forbiddenTimeoutId = setTimeout(() => {
+            this.forbiddenHighlight = null;
+            this.forbiddenTimeoutId = null;
+            this.render();
+        }, 1500);
+    }
+
+    clearForbiddenHighlight() {
+        if (this.forbiddenTimeoutId) {
+            clearTimeout(this.forbiddenTimeoutId);
+            this.forbiddenTimeoutId = null;
+        }
+        this.forbiddenHighlight = null;
+    }
+
     placePiece(x, y) {
         const result = this.game.placePiece(x, y);
         if (!result.success) {
+            if (result.code === 'FORBIDDEN_MOVE') {
+                this.highlightForbiddenPosition(x, y, result);
+            }
             GameUtils.showMessage(result.error, 'error');
             return result;
         }
 
+        this.clearForbiddenHighlight();
         this.hoverX = -1;
         this.hoverY = -1;
         this.updateWinHighlight(result.data.winLine);
@@ -273,7 +329,7 @@ class SimpleBoardRenderer {
 
 const RENDERER_MODULE_INFO = {
     name: 'SimpleBoardRenderer',
-    version: '1.0.0',
+    version: '2.0.0',
     dependencies: ['GomokuGame'],
     description: 'Canvas渲染器'
 };

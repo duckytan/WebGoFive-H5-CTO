@@ -128,6 +128,21 @@ button:disabled {
     transform: translateY(0);
 }
 
+#undo-button {
+    background: #f97316;
+    color: #fff;
+}
+
+#undo-button:not(:disabled):hover {
+    background: #ea580c;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.35);
+}
+
+#undo-button:not(:disabled):active {
+    transform: translateY(0);
+}
+
 /* ===== 状态面板 ===== */
 .status-panel {
     background: #f8f9fa;

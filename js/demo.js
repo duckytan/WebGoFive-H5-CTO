@@ -25,8 +25,9 @@ class InterfaceDemo {
 
         // 更新状态显示
         this.updateStatusDisplay();
+        this.updateControlStates();
 
-        GameUtils.showMessage('欢迎来到H5五子棋！黑方先手。', 'info', 2000);
+        GameUtils.showMessage('欢迎来到H5五子棋！禁手规则已启用，黑方先手。', 'info', 2000);
     }
 
     /**
@@ -56,9 +57,10 @@ class InterfaceDemo {
     initDOMElements() {
         this.canvas = document.getElementById('game-board');
         this.newGameButton = document.getElementById('new-game-button');
+        this.undoButton = document.getElementById('undo-button');
         this.statusPanel = document.getElementById('status-panel');
 
-        if (!this.canvas || !this.newGameButton || !this.statusPanel) {
+        if (!this.canvas || !this.newGameButton || !this.undoButton || !this.statusPanel) {
             throw new Error('[InterfaceDemo] 关键DOM元素未找到');
         }
 
@@ -74,6 +76,10 @@ class InterfaceDemo {
         this.newGameButton.addEventListener('click', () => {
             this.startNewGame();
         });
+
+        this.undoButton.addEventListener('click', () => {
+            this.handleUndo();
+        });
     }
 
     /**
@@ -86,6 +92,7 @@ class InterfaceDemo {
         }
 
         this.updateStatusDisplay();
+        this.updateControlStates();
 
         if (result.data.gameOver) {
             const winnerText = result.data.winner === 1 ? '黑方' : '白方';
@@ -104,10 +111,40 @@ class InterfaceDemo {
         if (this.renderer) {
             this.renderer.winHighlight = null;
             this.renderer.setInteractive(true);
+            if (typeof this.renderer.clearForbiddenHighlight === 'function') {
+                this.renderer.clearForbiddenHighlight();
+            }
             this.renderer.render();
         }
         this.updateStatusDisplay();
+        this.updateControlStates();
         GameUtils.showMessage('新游戏开始，黑方先手。', 'info');
+    }
+
+    /**
+     * 悔棋一步
+     */
+    handleUndo() {
+        const result = this.game.undo();
+        if (!result.success) {
+            GameUtils.showMessage(result.error, 'warning');
+            return;
+        }
+
+        if (this.renderer) {
+            this.renderer.setInteractive(true);
+            this.renderer.winHighlight = null;
+            if (typeof this.renderer.clearForbiddenHighlight === 'function') {
+                this.renderer.clearForbiddenHighlight();
+            }
+            this.renderer.render();
+        }
+
+        this.updateStatusDisplay();
+        this.updateControlStates();
+
+        const nextPlayerText = this.game.getGameState().currentPlayer === 1 ? '黑方' : '白方';
+        GameUtils.showMessage(`悔棋成功，轮到${nextPlayerText}。`, 'info');
     }
 
     /**
@@ -138,7 +175,7 @@ class InterfaceDemo {
         this.statusPanel.innerHTML = `
             <div class="info-item">
                 <span class="info-label">当前阶段:</span>
-                <span class="info-value">Stage 1 - 核心功能 ✅</span>
+                <span class="info-value">Stage 2 - 规则完善 ✅</span>
             </div>
             <div class="info-item">
                 <span class="info-label">当前模式:</span>
@@ -154,11 +191,20 @@ class InterfaceDemo {
             </div>
         `;
     }
+
+    /**
+     * 更新控制按钮状态
+     */
+    updateControlStates() {
+        if (this.undoButton) {
+            this.undoButton.disabled = this.game.moves.length === 0;
+        }
+    }
 }
 
 const DEMO_MODULE_INFO = {
     name: 'InterfaceDemo',
-    version: '1.0.0',
+    version: '2.0.0',
     dependencies: ['GameUtils', 'GomokuGame', 'SimpleBoardRenderer'],
     description: 'UI控制器'
 };

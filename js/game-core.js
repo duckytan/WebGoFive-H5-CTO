@@ -60,16 +60,37 @@ class GomokuGame {
 
         this.board[y][x] = this.currentPlayer;
         
+        const winResult = this.checkWin(x, y);
+        const isExactFive = winResult.hasWon && winResult.winLine.length === 5;
+        const canClaimWin = this.currentPlayer === 1 ? isExactFive : winResult.hasWon;
+        const shouldCheckForbidden = this.currentPlayer === 1 && !isExactFive;
+        
+        if (shouldCheckForbidden) {
+            const forbiddenResult = this.checkForbidden(x, y);
+            if (forbiddenResult.isForbidden) {
+                this.board[y][x] = 0;
+                return {
+                    success: false,
+                    error: `禁手：${forbiddenResult.type}`,
+                    code: 'FORBIDDEN_MOVE',
+                    data: {
+                        x,
+                        y,
+                        forbiddenType: forbiddenResult.type,
+                        details: forbiddenResult.details
+                    }
+                };
+            }
+        }
+        
         this.moves.push({
             x,
             y,
             player: this.currentPlayer,
             timestamp: Date.now()
         });
-
-        const winResult = this.checkWin(x, y);
         
-        if (winResult.hasWon) {
+        if (canClaimWin) {
             this.gameOver = true;
             this.winner = this.currentPlayer;
             this.winLine = winResult.winLine;
@@ -230,11 +251,226 @@ class GomokuGame {
             winLine: this.winLine
         };
     }
+
+    /**
+     * 检查是否构成禁手
+     * @param {number} x - 落子X坐标
+     * @param {number} y - 落子Y坐标
+     * @returns {{isForbidden: boolean, type?: string, details?: Object}}
+     */
+    checkForbidden(x, y) {
+        const player = this.board[y][x];
+        if (player !== 1) {
+            return { isForbidden: false };
+        }
+
+        const longLine = this.checkLongLine(x, y, player);
+        if (longLine) {
+            return {
+                isForbidden: true,
+                type: '长连禁手',
+                details: longLine
+            };
+        }
+
+        const openThrees = this.countOpenThrees(x, y, player);
+        if (openThrees >= 2) {
+            return {
+                isForbidden: true,
+                type: '三三禁手',
+                details: { openThrees }
+            };
+        }
+
+        const openFours = this.countOpenFours(x, y, player);
+        if (openFours >= 2) {
+            return {
+                isForbidden: true,
+                type: '四四禁手',
+                details: { openFours }
+            };
+        }
+
+        return { isForbidden: false };
+    }
+
+    /**
+     * 检查是否存在长连
+     * @param {number} x - 落子X坐标
+     * @param {number} y - 落子Y坐标
+     * @param {number} player - 玩家
+     * @returns {Object|null}
+     */
+    checkLongLine(x, y, player) {
+        const directions = [
+            { dx: 1, dy: 0 },
+            { dx: 0, dy: 1 },
+            { dx: 1, dy: 1 },
+            { dx: 1, dy: -1 }
+        ];
+
+        for (const { dx, dy } of directions) {
+            const forward = this.getLine(x, y, dx, dy, player);
+            const backward = this.getLine(x, y, -dx, -dy, player);
+            const total = 1 + forward + backward;
+
+            if (total >= 6) {
+                return {
+                    direction: { dx, dy },
+                    length: total
+                };
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 统计所有方向的活三数
+     * @param {number} x - 落子X坐标
+     * @param {number} y - 落子Y坐标
+     * @param {number} player - 玩家
+     * @returns {number}
+     */
+    countOpenThrees(x, y, player) {
+        const directions = [
+            { dx: 1, dy: 0 },
+            { dx: 0, dy: 1 },
+            { dx: 1, dy: 1 },
+            { dx: 1, dy: -1 }
+        ];
+        const range = 6;
+        let total = 0;
+
+        for (const { dx, dy } of directions) {
+            const signature = this.getLineSignature(x, y, dx, dy, player, range);
+            total += this.countOpenThreesInLine(signature, range);
+        }
+
+        return total;
+    }
+
+    /**
+     * 统计所有方向的活四数
+     * @param {number} x - 落子X坐标
+     * @param {number} y - 落子Y坐标
+     * @param {number} player - 玩家
+     * @returns {number}
+     */
+    countOpenFours(x, y, player) {
+        const directions = [
+            { dx: 1, dy: 0 },
+            { dx: 0, dy: 1 },
+            { dx: 1, dy: 1 },
+            { dx: 1, dy: -1 }
+        ];
+        const range = 6;
+        let total = 0;
+
+        for (const { dx, dy } of directions) {
+            const signature = this.getLineSignature(x, y, dx, dy, player, range);
+            total += this.countOpenFoursInLine(signature, range);
+        }
+
+        return total;
+    }
+
+    /**
+     * 获取指定方向的线性签名
+     * @param {number} x - 落子X坐标
+     * @param {number} y - 落子Y坐标
+     * @param {number} dx - X方向增量
+     * @param {number} dy - Y方向增量
+     * @param {number} player - 玩家
+     * @param {number} range - 范围
+     * @returns {string}
+     */
+    getLineSignature(x, y, dx, dy, player, range = 6) {
+        const values = [];
+        for (let offset = -range; offset <= range; offset++) {
+            const nx = x + dx * offset;
+            const ny = y + dy * offset;
+
+            if (!GameUtils.isValidPosition(nx, ny, this.BOARD_SIZE)) {
+                values.push('2');
+                continue;
+            }
+
+            const cell = this.board[ny][nx];
+            if (cell === 0) {
+                values.push('0');
+            } else if (cell === player) {
+                values.push('1');
+            } else {
+                values.push('2');
+            }
+        }
+        return values.join('');
+    }
+
+    /**
+     * 统计单条线中的活三
+     * @param {string} signature - 线性签名
+     * @param {number} range - 中心索引
+     * @returns {number}
+     */
+    countOpenThreesInLine(signature, range) {
+        const centerIndex = range;
+        const patterns = [
+            '0011100',
+            '0011010',
+            '0010110',
+            '0101100',
+            '0100110',
+            '0110100'
+        ];
+        return this.countPatternsIncludingCenter(signature, patterns, centerIndex);
+    }
+
+    /**
+     * 统计单条线中的活四
+     * @param {string} signature - 线性签名
+     * @param {number} range - 中心索引
+     * @returns {number}
+     */
+    countOpenFoursInLine(signature, range) {
+        const centerIndex = range;
+        const patterns = [
+            '0011110',
+            '0111100',
+            '0111010',
+            '0101110',
+            '0110110'
+        ];
+        return this.countPatternsIncludingCenter(signature, patterns, centerIndex);
+    }
+
+    /**
+     * 统计包含当前落子的指定模式出现次数
+     * @param {string} signature - 线性签名
+     * @param {string[]} patterns - 模式集合
+     * @param {number} centerIndex - 中心索引
+     * @returns {number}
+     */
+    countPatternsIncludingCenter(signature, patterns, centerIndex) {
+        let count = 0;
+        for (const pattern of patterns) {
+            let index = signature.indexOf(pattern);
+            while (index !== -1) {
+                const endIndex = index + pattern.length - 1;
+                if (index <= centerIndex && centerIndex <= endIndex) {
+                    count++;
+                }
+                index = signature.indexOf(pattern, index + 1);
+            }
+        }
+        return count;
+    }
 }
 
 const GAME_CORE_MODULE_INFO = {
     name: 'GomokuGame',
-    version: '1.0.0',
+    version: '2.0.0',
     dependencies: ['GameUtils'],
     description: '五子棋核心引擎'
 };
