@@ -160,6 +160,11 @@ graph TD
 - Edge 79+ ✅
 - IE 11 ❌
 
+### 🌐 部署渠道
+- **Vercel**（推荐）: 零配置静态托管，支持自动HTTPS与CDN。根目录已提供 `vercel.json` 配置，详见 [TESTING_DEPLOYMENT.md](./TESTING_DEPLOYMENT.md#部署方案)。
+- **GitHub Pages**: 适合长期托管，可配合自定义域名。
+- **本地HTTP服务器**: 用于开发调试（`python3 -m http.server 8080`）。
+
 ---
 
 ## 📦 项目结构
