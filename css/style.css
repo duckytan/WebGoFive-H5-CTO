@@ -1,0 +1,213 @@
+/**
+ * H5 五子棋游戏 - 主样式表
+ * Stage 0 - 基础布局和样式
+ */
+
+/* ===== 全局样式 ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
+                 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    color: #333;
+    line-height: 1.6;
+}
+
+/* ===== NoScript警告 ===== */
+.noscript-warning {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 20px;
+    background: #f44336;
+    color: white;
+    text-align: center;
+    font-weight: bold;
+    z-index: 9999;
+}
+
+/* ===== 主容器 ===== */
+.app-container {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    padding: 30px;
+    max-width: 800px;
+    width: 100%;
+}
+
+/* ===== 页头 ===== */
+.app-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.app-header h1 {
+    font-size: 36px;
+    color: #333;
+    margin-bottom: 8px;
+    font-weight: 700;
+}
+
+.app-header .subtitle {
+    font-size: 14px;
+    color: #666;
+    margin: 0;
+}
+
+/* ===== 棋盘区域 ===== */
+.board-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 30px 0;
+    min-height: 200px;
+}
+
+#game-board {
+    display: block;
+    background: #DEB887;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+}
+
+/* ===== 控制区域 ===== */
+.controls-section {
+    margin-top: 30px;
+}
+
+.control-group {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+button {
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: inherit;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#new-game-button {
+    background: #667eea;
+    color: white;
+}
+
+#new-game-button:not(:disabled):hover {
+    background: #5568d3;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+#new-game-button:not(:disabled):active {
+    transform: translateY(0);
+}
+
+/* ===== 状态面板 ===== */
+.status-panel {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    font-size: 14px;
+}
+
+.status-item {
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+}
+
+.status-item:last-child {
+    margin-bottom: 0;
+}
+
+.status-item strong {
+    margin-right: 8px;
+    color: #555;
+}
+
+/* ===== 页脚 ===== */
+.app-footer {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 2px solid #f0f0f0;
+    text-align: center;
+    font-size: 12px;
+    color: #999;
+}
+
+.app-footer p {
+    margin: 4px 0;
+}
+
+.version-info {
+    font-weight: 600;
+    color: #667eea;
+}
+
+/* ===== 响应式设计 ===== */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .app-container {
+        padding: 20px;
+    }
+
+    .app-header h1 {
+        font-size: 28px;
+    }
+
+    .app-header .subtitle {
+        font-size: 12px;
+    }
+
+    button {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+
+    .status-panel {
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .app-header h1 {
+        font-size: 24px;
+    }
+
+    .control-group {
+        flex-direction: column;
+    }
+
+    button {
+        width: 100%;
+    }
+}

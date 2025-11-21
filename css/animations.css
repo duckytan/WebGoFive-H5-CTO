@@ -1,0 +1,69 @@
+/**
+ * H5 五子棋游戏 - 动画样式
+ * Stage 0: 预留关键帧动画
+ */
+
+/* 按钮悬停轻微浮动 */
+@keyframes buttonHoverFloat {
+    0% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-2px);
+    }
+    100% {
+        transform: translateY(0);
+    }
+}
+
+/* 消息提示淡入淡出（Stage 1启用） */
+@keyframes toastFadeIn {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes toastFadeOut {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}
+
+/* 棋子落子动画（Stage 1启用） */
+@keyframes pieceDrop {
+    0% {
+        transform: translateY(-10px) scale(0.8);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+/* 光标悬停高亮（预留） */
+.hover-highlight {
+    animation: hoverPulse 1.2s infinite;
+}
+
+@keyframes hoverPulse {
+    0% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.6;
+    }
+}
