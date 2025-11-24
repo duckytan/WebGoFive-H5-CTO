@@ -32,6 +32,7 @@
                 <button id="mode-pvp" type="button" class="mode-button active">PvP</button>
                 <button id="mode-pve" type="button" class="mode-button">PvE</button>
                 <button id="mode-eve" type="button" class="mode-button">EvE</button>
+                <button id="mode-vcf" type="button" class="mode-button">VCF练习</button>
             </div>
             <div class="control-group difficulty-wrapper">
                 <label for="difficulty-select">AI难度</label>
@@ -42,12 +43,24 @@
                     <option value="HELL">地狱</option>
                 </select>
             </div>
+            <div class="control-group vcf-level-wrapper" style="display: none;">
+                <label for="vcf-level-select">VCF难度</label>
+                <select id="vcf-level-select">
+                    <option value="1" selected>入门 (Level 1)</option>
+                    <option value="2">初级 (Level 2)</option>
+                    <option value="3">中级 (Level 3)</option>
+                    <option value="4">高级 (Level 4)</option>
+                </select>
+            </div>
             <div class="control-group primary-actions">
                 <button id="new-game-button" type="button">
                     新游戏
                 </button>
                 <button id="undo-button" type="button" disabled>
                     悔棋
+                </button>
+                <button id="hint-button" type="button" disabled>
+                    💡 提示
                 </button>
             </div>
             <div class="control-group save-load-group">
@@ -79,14 +92,45 @@
                 <input type="range" id="replay-progress" min="0" max="100" value="0">
                 <span id="replay-progress-label">0 / 0</span>
             </div>
+            <div class="control-group vcf-actions" id="vcf-actions" style="display: none;">
+                <button id="vcf-start-button" type="button">开始练习</button>
+                <button id="vcf-restart-button" type="button" disabled>重新开始</button>
+                <button id="vcf-hint-button" type="button" disabled>查看提示</button>
+                <button id="vcf-solution-button" type="button" disabled>查看解法</button>
+            </div>
+            <div class="vcf-status-card" id="vcf-status-card" style="display: none;">
+                <div class="vcf-status-header">
+                    <h3 id="vcf-puzzle-name">VCF练习未开始</h3>
+                    <span class="vcf-badge" id="vcf-puzzle-level">Level 1</span>
+                </div>
+                <p class="vcf-description" id="vcf-puzzle-description">选择难度并点击“开始练习”</p>
+                <div class="vcf-metrics">
+                    <div>
+                        <span class="metric-label">当前进度</span>
+                        <span class="metric-value" id="vcf-progress-text">0 / 0</span>
+                    </div>
+                    <div>
+                        <span class="metric-label">累计完成</span>
+                        <span class="metric-value" id="vcf-overall-progress">0 / 40 (0%)</span>
+                    </div>
+                </div>
+                <div class="vcf-next-step">
+                    <span class="hint-label">下一关键点</span>
+                    <p id="vcf-next-step-text">-</p>
+                </div>
+                <div class="vcf-hint-box">
+                    <span class="hint-label">提示</span>
+                    <p id="vcf-hint-text">-</p>
+                </div>
+            </div>
             <div class="status-panel" id="status-panel">
                 <p>正在初始化...</p>
             </div>
         </section>
 
         <footer class="app-footer">
-            <p>模块加载顺序: utils → game-core → ai-advanced → save-load → replay → board-renderer → demo</p>
-            <p class="version-info">版本: v4.0.0 (Stage 4 完成)</p>
+            <p>模块加载顺序: utils → game-core → ai-advanced → save-load → replay → vcf-practice → board-renderer → demo</p>
+            <p class="version-info">版本: v5.0.0 (Stage 5 完成)</p>
         </footer>
     </main>
 
@@ -96,6 +140,7 @@
     <script src="js/board-renderer.js"></script>
     <script src="js/game-save-load.js"></script>
     <script src="js/game-replay.js"></script>
+    <script src="js/vcf-practice.js"></script>
     <script src="js/demo.js"></script>
 </body>
 </html>

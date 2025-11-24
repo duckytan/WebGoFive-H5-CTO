@@ -22,6 +22,7 @@ class SimpleBoardRenderer {
         this.PADDING = options.padding ?? 40;
         this.CELL_SIZE = options.cellSize ?? 40;
         this.canvasSize = this.PADDING * 2 + (this.BOARD_SIZE - 1) * this.CELL_SIZE;
+        this.showCoordinates = options.showCoordinates ?? false;
 
         this.hoverX = -1;
         this.hoverY = -1;
@@ -29,6 +30,8 @@ class SimpleBoardRenderer {
         this.winHighlight = null;
         this.forbiddenHighlight = null;
         this.forbiddenTimeoutId = null;
+        this.hintHighlight = null;
+        this.hintTimeoutId = null;
 
         this.initCanvas();
         this.setupEventListeners();
@@ -115,6 +118,7 @@ class SimpleBoardRenderer {
         this.drawHoverPreview();
         this.drawWinHighlight();
         this.drawForbiddenHighlight();
+        this.drawHintHighlight();
     }
 
     drawBoard() {
@@ -282,6 +286,65 @@ class SimpleBoardRenderer {
         this.forbiddenHighlight = null;
     }
 
+    /**
+     * 高亮提示位置
+     * @param {number} x - X坐标
+     * @param {number} y - Y坐标
+     * @param {number} duration - 显示时长（毫秒），默认3000
+     */
+    highlightHintPosition(x, y, duration = 3000) {
+        if (this.hintTimeoutId) {
+            clearTimeout(this.hintTimeoutId);
+            this.hintTimeoutId = null;
+        }
+        this.hintHighlight = { x, y };
+        this.render();
+        this.hintTimeoutId = setTimeout(() => {
+            this.hintHighlight = null;
+            this.hintTimeoutId = null;
+            this.render();
+        }, duration);
+    }
+
+    /**
+     * 清除提示高亮
+     */
+    clearHintHighlight() {
+        if (this.hintTimeoutId) {
+            clearTimeout(this.hintTimeoutId);
+            this.hintTimeoutId = null;
+        }
+        this.hintHighlight = null;
+    }
+
+    /**
+     * 绘制提示高亮
+     */
+    drawHintHighlight() {
+        if (!this.hintHighlight) {
+            return;
+        }
+        const { x, y } = this.hintHighlight;
+        const { canvasX, canvasY } = this.getCanvasPosition(x, y);
+        const radius = this.CELL_SIZE * 0.45;
+
+        this.ctx.save();
+        this.ctx.strokeStyle = '#10b981';
+        this.ctx.lineWidth = 3;
+        this.ctx.beginPath();
+        this.ctx.arc(canvasX, canvasY, radius, 0, Math.PI * 2);
+        this.ctx.stroke();
+        
+        // 绘制十字标记
+        this.ctx.beginPath();
+        this.ctx.moveTo(canvasX - radius * 0.4, canvasY);
+        this.ctx.lineTo(canvasX + radius * 0.4, canvasY);
+        this.ctx.moveTo(canvasX, canvasY - radius * 0.4);
+        this.ctx.lineTo(canvasX, canvasY + radius * 0.4);
+        this.ctx.stroke();
+        this.ctx.restore();
+    }
+
     placePiece(x, y) {
         const result = this.game.placePiece(x, y);
         if (!result.success) {
@@ -293,6 +356,7 @@ class SimpleBoardRenderer {
         }
 
         this.clearForbiddenHighlight();
+        this.clearHintHighlight();
         this.hoverX = -1;
         this.hoverY = -1;
         this.updateWinHighlight(result.data.winLine);
