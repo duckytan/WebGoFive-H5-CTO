@@ -23,6 +23,7 @@ class SimpleBoardRenderer {
         this.CELL_SIZE = options.cellSize ?? 40;
         this.canvasSize = this.PADDING * 2 + (this.BOARD_SIZE - 1) * this.CELL_SIZE;
         this.showCoordinates = options.showCoordinates ?? false;
+        this.autoForbiddenHint = options.autoForbiddenHint ?? true;
 
         this.hoverX = -1;
         this.hoverY = -1;
@@ -46,7 +47,7 @@ class SimpleBoardRenderer {
     }
 
     setupEventListeners() {
-        this.canvas.addEventListener('click', (event) => {
+        const handlePlacement = (event) => {
             if (!this.isInteractive) {
                 GameUtils.showMessage('当前不可落子，请重新开始游戏。', 'warning');
                 return;
@@ -57,9 +58,9 @@ class SimpleBoardRenderer {
                 return;
             }
             this.placePiece(x, y);
-        });
+        };
 
-        this.canvas.addEventListener('mousemove', (event) => {
+        const updateHoverPosition = (event) => {
             if (!this.isInteractive) {
                 return;
             }
@@ -69,21 +70,47 @@ class SimpleBoardRenderer {
                 this.hoverY = y;
                 this.render();
             }
-        });
+        };
 
-        this.canvas.addEventListener('mouseleave', () => {
+        this.canvas.addEventListener('click', handlePlacement);
+
+        this.canvas.addEventListener('touchstart', (event) => {
+            event.preventDefault();
+            handlePlacement(event);
+        }, { passive: false });
+
+        this.canvas.addEventListener('mousemove', updateHoverPosition);
+
+        this.canvas.addEventListener('touchmove', (event) => {
+            event.preventDefault();
+            updateHoverPosition(event);
+        }, { passive: false });
+
+        const clearHover = () => {
             if (this.hoverX !== -1 || this.hoverY !== -1) {
                 this.hoverX = -1;
                 this.hoverY = -1;
                 this.render();
             }
-        });
+        };
+
+        this.canvas.addEventListener('mouseleave', clearHover);
+        this.canvas.addEventListener('touchend', () => clearHover());
+        this.canvas.addEventListener('touchcancel', () => clearHover());
     }
 
     getBoardPositionFromEvent(event) {
         const rect = this.canvas.getBoundingClientRect();
-        const canvasX = event.clientX - rect.left;
-        const canvasY = event.clientY - rect.top;
+        let canvasX, canvasY;
+        
+        if (event.touches && event.touches.length > 0) {
+            canvasX = event.touches[0].clientX - rect.left;
+            canvasY = event.touches[0].clientY - rect.top;
+        } else {
+            canvasX = event.clientX - rect.left;
+            canvasY = event.clientY - rect.top;
+        }
+        
         return this.getBoardPosition(canvasX, canvasY);
     }
 
@@ -139,6 +166,10 @@ class SimpleBoardRenderer {
             this.ctx.stroke();
         }
 
+        if (this.showCoordinates) {
+            this.drawCoordinates();
+        }
+
         const stars = [
             [3, 3], [3, 11], [11, 3], [11, 11], [7, 7]
         ];
@@ -150,6 +181,22 @@ class SimpleBoardRenderer {
             this.ctx.fillStyle = '#000';
             this.ctx.fill();
         });
+    }
+
+    drawCoordinates() {
+        this.ctx.font = '12px Arial';
+        this.ctx.fillStyle = '#666';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+
+        for (let i = 0; i < this.BOARD_SIZE; i++) {
+            const pos = this.PADDING + i * this.CELL_SIZE;
+            const label = String.fromCharCode(65 + i);
+            this.ctx.fillText(label, pos, this.PADDING - 20);
+            this.ctx.fillText(label, pos, this.PADDING + (this.BOARD_SIZE - 1) * this.CELL_SIZE + 20);
+            this.ctx.fillText((i + 1).toString(), this.PADDING - 20, pos);
+            this.ctx.fillText((i + 1).toString(), this.PADDING + (this.BOARD_SIZE - 1) * this.CELL_SIZE + 20, pos);
+        }
     }
 
     drawPieces() {
@@ -261,6 +308,9 @@ class SimpleBoardRenderer {
     }
 
     highlightForbiddenPosition(x, y, result) {
+        if (!this.autoForbiddenHint) {
+            return;
+        }
         if (this.forbiddenTimeoutId) {
             clearTimeout(this.forbiddenTimeoutId);
             this.forbiddenTimeoutId = null;
@@ -386,6 +436,41 @@ class SimpleBoardRenderer {
         this.winHighlight = { start, end };
     }
 
+    setShowCoordinates(enabled) {
+        const shouldShow = !!enabled;
+        if (this.showCoordinates === shouldShow) {
+            return;
+        }
+        this.showCoordinates = shouldShow;
+        this.render();
+    }
+
+    setAutoForbiddenHint(enabled) {
+        const shouldEnable = !!enabled;
+        if (this.autoForbiddenHint === shouldEnable) {
+            return;
+        }
+        this.autoForbiddenHint = shouldEnable;
+        if (!shouldEnable) {
+            this.clearForbiddenHighlight();
+            this.render();
+        }
+    }
+
+    updateLayout({ padding, cellSize } = {}) {
+        const nextPadding = typeof padding === 'number' ? padding : this.PADDING;
+        const nextCellSize = typeof cellSize === 'number' ? cellSize : this.CELL_SIZE;
+        if (nextPadding === this.PADDING && nextCellSize === this.CELL_SIZE) {
+            return;
+        }
+        this.PADDING = nextPadding;
+        this.CELL_SIZE = nextCellSize;
+        this.canvasSize = this.PADDING * 2 + (this.BOARD_SIZE - 1) * this.CELL_SIZE;
+        this.canvas.width = Math.round(this.canvasSize);
+        this.canvas.height = Math.round(this.canvasSize);
+        this.render();
+    }
+
     setInteractive(enabled) {
         this.isInteractive = enabled;
     }
@@ -393,7 +478,7 @@ class SimpleBoardRenderer {
 
 const RENDERER_MODULE_INFO = {
     name: 'SimpleBoardRenderer',
-    version: '2.0.0',
+    version: '2.1.0',
     dependencies: ['GomokuGame'],
     description: 'Canvas渲染器'
 };

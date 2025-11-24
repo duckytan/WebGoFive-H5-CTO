@@ -130,9 +130,138 @@
 
         <footer class="app-footer">
             <p>模块加载顺序: utils → game-core → ai-advanced → save-load → replay → vcf-practice → board-renderer → demo</p>
-            <p class="version-info">版本: v5.0.0 (Stage 5 完成)</p>
+            <p class="version-info">版本: v6.0.0 (Stage 6 完成) | 
+                <button id="settings-button" type="button" class="footer-link-button">⚙️ 设置</button> | 
+                <button id="help-button" type="button" class="footer-link-button">❓ 帮助</button>
+            </p>
         </footer>
     </main>
+
+    <!-- 设置模态框 -->
+    <div id="settings-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚙️ 游戏设置</h2>
+                <button class="modal-close" id="settings-modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-item">
+                    <label class="setting-label">
+                        <input type="checkbox" id="setting-show-coords" class="setting-checkbox">
+                        显示坐标
+                    </label>
+                    <p class="setting-description">在棋盘上显示坐标标识</p>
+                </div>
+                <div class="setting-item">
+                    <label class="setting-label">
+                        <input type="checkbox" id="setting-animations" class="setting-checkbox" checked>
+                        动画效果
+                    </label>
+                    <p class="setting-description">开启界面动画效果</p>
+                </div>
+                <div class="setting-item">
+                    <label class="setting-label">
+                        <input type="checkbox" id="setting-sound" class="setting-checkbox">
+                        音效（占位）
+                    </label>
+                    <p class="setting-description">落子音效（暂未实现）</p>
+                </div>
+                <div class="setting-item">
+                    <label class="setting-label">
+                        <input type="checkbox" id="setting-auto-hint" class="setting-checkbox" checked>
+                        自动提示禁手
+                    </label>
+                    <p class="setting-description">在可能的禁手位置显示红色标记</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-button modal-button-primary" id="settings-save-button">保存设置</button>
+                <button class="modal-button modal-button-secondary" id="settings-reset-button">恢复默认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 帮助模态框 -->
+    <div id="help-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content modal-content-large">
+            <div class="modal-header">
+                <h2>❓ 帮助文档</h2>
+                <button class="modal-close" id="help-modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="help-section">
+                    <h3>📖 游戏规则</h3>
+                    <p>五子棋是一种两人对弈的策略棋盘游戏。</p>
+                    <ul>
+                        <li><strong>目标</strong>：率先在棋盘上形成横、竖、斜任一方向的连续五个同色棋子</li>
+                        <li><strong>规则</strong>：黑方先手，双方轮流落子，每次落一枚棋子</li>
+                        <li><strong>胜利</strong>：首先形成五连者获胜</li>
+                    </ul>
+                </div>
+                <div class="help-section">
+                    <h3>⚖️ 禁手规则（仅黑方）</h3>
+                    <p>为平衡先手优势，黑方受到禁手限制：</p>
+                    <ul>
+                        <li><strong>长连禁手</strong>：六个或更多连续同色棋子（黑方判负）</li>
+                        <li><strong>三三禁手</strong>：一步棋同时形成两个或以上的活三</li>
+                        <li><strong>四四禁手</strong>：一步棋同时形成两个或以上的冲四</li>
+                        <li><strong>五连优先</strong>：如果一步棋同时形成五连和禁手，则五连优先，黑方获胜</li>
+                    </ul>
+                    <p>⚠️ 白方不受禁手限制。</p>
+                </div>
+                <div class="help-section">
+                    <h3>🎮 游戏模式</h3>
+                    <ul>
+                        <li><strong>PvP</strong> - 玩家对战：双人对弈模式</li>
+                        <li><strong>PvE</strong> - 人机对战：与AI对弈，可选择难度</li>
+                        <li><strong>EvE</strong> - AI演示：观看AI自我对弈</li>
+                        <li><strong>VCF练习</strong> - 胜利练习：40道VCF题库，4个难度等级</li>
+                    </ul>
+                </div>
+                <div class="help-section">
+                    <h3>🤖 AI难度</h3>
+                    <ul>
+                        <li><strong>新手</strong> - 随机落子</li>
+                        <li><strong>普通</strong> - 基础评分算法</li>
+                        <li><strong>困难</strong> - 高级评分+威胁分析</li>
+                        <li><strong>地狱</strong> - 极限搜索+VCF检测</li>
+                    </ul>
+                </div>
+                <div class="help-section">
+                    <h3>🎯 VCF练习模式</h3>
+                    <p>VCF（Victory by Continuous Four）即连续冲四杀。</p>
+                    <ul>
+                        <li><strong>Level 1</strong> - 入门：2-3步必胜</li>
+                        <li><strong>Level 2</strong> - 初级：3-4步必胜</li>
+                        <li><strong>Level 3</strong> - 中级：5-7步必胜</li>
+                        <li><strong>Level 4</strong> - 高级：8-12步必胜</li>
+                    </ul>
+                    <p>💡 在VCF模式下，点击"查看提示"可获得下一步的提示。</p>
+                </div>
+                <div class="help-section">
+                    <h3>⌨️ 快捷功能</h3>
+                    <ul>
+                        <li><strong>提示按钮</strong> - 显示AI建议的最佳落子位置（3秒冷却）</li>
+                        <li><strong>悔棋</strong> - 撤销上一步棋（回放模式下不可用）</li>
+                        <li><strong>保存/加载</strong> - 保存当前棋局或加载已保存的棋局</li>
+                        <li><strong>回放功能</strong> - 回放当前对局或已加载的对局</li>
+                    </ul>
+                </div>
+                <div class="help-section">
+                    <h3>📱 关于项目</h3>
+                    <p>H5五子棋游戏是一个纯原生JavaScript实现的Web应用，采用模块化架构设计。</p>
+                    <ul>
+                        <li><strong>技术栈</strong>：HTML5 Canvas + JavaScript ES6+ + CSS3</li>
+                        <li><strong>特色</strong>：无框架依赖、模块化API、事件驱动架构</li>
+                        <li><strong>版本</strong>：v6.0.0</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-button modal-button-primary" id="help-close-button">关闭</button>
+            </div>
+        </div>
+    </div>
 
     <script src="js/utils.js"></script>
     <script src="js/game-core.js"></script>
