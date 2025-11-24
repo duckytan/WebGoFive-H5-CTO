@@ -39,6 +39,13 @@ class InterfaceDemo {
             onStateChange: (state) => this.handleReplayStateChange(state)
         });
 
+        // 初始化VCF练习管理器
+        this.vcfManager = new VCFPracticeManager();
+        this.currentVCFPuzzle = null;
+        this.currentVCFLevel = 1;
+        this.isVCFMode = false;
+        this.vcfBusy = false;
+
         // 绑定事件
         this.bindEvents();
 
@@ -53,7 +60,7 @@ class InterfaceDemo {
      * 检查必需依赖
      */
     checkDependencies() {
-        const required = ['GameUtils', 'GomokuGame', 'SimpleBoardRenderer', 'GameSaveLoad', 'GameReplay'];
+        const required = ['GameUtils', 'GomokuGame', 'SimpleBoardRenderer', 'GameSaveLoad', 'GameReplay', 'VCFPracticeManager'];
         const missing = [];
 
         required.forEach(dep => {
@@ -81,10 +88,26 @@ class InterfaceDemo {
         this.modeButtons = {
             PvP: document.getElementById('mode-pvp'),
             PvE: document.getElementById('mode-pve'),
-            EvE: document.getElementById('mode-eve')
+            EvE: document.getElementById('mode-eve'),
+            VCF: document.getElementById('mode-vcf')
         };
         this.difficultySelect = document.getElementById('difficulty-select');
         this.difficultyWrapper = document.querySelector('.difficulty-wrapper');
+        this.vcfLevelWrapper = document.querySelector('.vcf-level-wrapper');
+        this.vcfLevelSelect = document.getElementById('vcf-level-select');
+        this.vcfActionsGroup = document.getElementById('vcf-actions');
+        this.vcfStartButton = document.getElementById('vcf-start-button');
+        this.vcfRestartButton = document.getElementById('vcf-restart-button');
+        this.vcfHintButton = document.getElementById('vcf-hint-button');
+        this.vcfSolutionButton = document.getElementById('vcf-solution-button');
+        this.vcfStatusCard = document.getElementById('vcf-status-card');
+        this.vcfPuzzleNameEl = document.getElementById('vcf-puzzle-name');
+        this.vcfPuzzleLevelEl = document.getElementById('vcf-puzzle-level');
+        this.vcfPuzzleDescriptionEl = document.getElementById('vcf-puzzle-description');
+        this.vcfProgressTextEl = document.getElementById('vcf-progress-text');
+        this.vcfOverallProgressEl = document.getElementById('vcf-overall-progress');
+        this.vcfHintTextEl = document.getElementById('vcf-hint-text');
+        this.vcfNextStepTextEl = document.getElementById('vcf-next-step-text');
         this.saveButton = document.getElementById('save-button');
         this.loadButton = document.getElementById('load-button');
         this.autoSaveButton = document.getElementById('auto-save-button');
@@ -144,11 +167,56 @@ class InterfaceDemo {
             });
         }
 
+        if (this.modeButtons.VCF) {
+            this.modeButtons.VCF.addEventListener('click', () => {
+                this.switchMode('VCF_PRACTICE');
+            });
+        }
+
         if (this.difficultySelect) {
             this.difficultySelect.addEventListener('change', (e) => {
                 this.aiDifficulty = e.target.value;
                 GameUtils.showMessage(`AI难度已设置为 ${this.getDifficultyName(this.aiDifficulty)}`, 'info', 1500);
             });
+        }
+
+        if (this.vcfLevelSelect) {
+            this.vcfLevelSelect.addEventListener('change', (e) => {
+                this.currentVCFLevel = parseInt(e.target.value, 10) || 1;
+                if (this.isVCFMode) {
+                    this.startVCFPuzzle();
+                }
+            });
+        }
+
+        if (this.vcfStartButton) {
+            this.vcfStartButton.addEventListener('click', () => this.startVCFPuzzle());
+        }
+
+        if (this.vcfRestartButton) {
+            this.vcfRestartButton.addEventListener('click', () => this.restartVCFPuzzle());
+        }
+
+        if (this.vcfHintButton) {
+            this.vcfHintButton.addEventListener('click', () => this.showVCFHint());
+        }
+
+        if (this.vcfSolutionButton) {
+            this.vcfSolutionButton.addEventListener('click', () => this.showVCFSolution());
+        }
+
+        if (this.canvas) {
+            this.canvas.addEventListener('click', (event) => {
+                if (!this.isVCFMode) {
+                    return;
+                }
+                event.stopImmediatePropagation();
+                event.preventDefault();
+                const { x, y } = this.renderer.getBoardPositionFromEvent(event);
+                if (x !== -1 && y !== -1) {
+                    this.handleVCFPracticeMove(x, y);
+                }
+            }, true);
         }
 
         if (this.saveButton) {
@@ -568,12 +636,54 @@ class InterfaceDemo {
             speed: this.replayManager.speed
         };
     }
+
+    /**
+     * 开始VCF练习
+     */
+    startVCFPuzzle() {
+        GameUtils.showMessage('VCF练习模式开发中，请期待后续版本！', 'info', 3000);
+        console.log('[VCF] 题库已就绪，等待UI完整集成');
+        console.log('[VCF] 题库数量:', this.vcfManager.puzzles.length);
+        console.log('[VCF] 当前难度:', this.currentVCFLevel);
+        const progress = this.vcfManager.getProgress();
+        console.log('[VCF] 完成进度:', progress);
+    }
+
+    /**
+     * 重启VCF题目
+     */
+    restartVCFPuzzle() {
+        GameUtils.showMessage('VCF重启功能开发中', 'info', 2000);
+    }
+
+    /**
+     * 显示VCF提示
+     */
+    showVCFHint() {
+        const hint = this.vcfManager.getHint();
+        GameUtils.showMessage(`提示: ${hint}`, 'info', 3000);
+    }
+
+    /**
+     * 显示VCF解法
+     */
+    showVCFSolution() {
+        GameUtils.showMessage('解法查看功能开发中', 'info', 2000);
+    }
+
+    /**
+     * 处理VCF练习落子
+     */
+    handleVCFPracticeMove(x, y) {
+        console.log('[VCF] 玩家落子:', x, y);
+        GameUtils.showMessage('VCF练习落子功能开发中', 'info', 2000);
+    }
 }
 
 const DEMO_MODULE_INFO = {
     name: 'InterfaceDemo',
-    version: '4.0.0',
-    dependencies: ['GameUtils', 'GomokuGame', 'SimpleBoardRenderer', 'GameSaveLoad', 'GameReplay'],
+    version: '5.0.0',
+    dependencies: ['GameUtils', 'GomokuGame', 'SimpleBoardRenderer', 'GameSaveLoad', 'GameReplay', 'VCFPracticeManager'],
     description: 'UI控制器'
 };
 
