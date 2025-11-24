@@ -270,3 +270,11 @@ button:hover:not(:disabled) {
         transform: translateX(5px);
     }
 }
+
+/* 禁用动画类 */
+.no-animations *,
+.no-animations *::before,
+.no-animations *::after {
+    animation: none !important;
+    transition: none !important;
+}

@@ -9,6 +9,16 @@ class InterfaceDemo {
         // 依赖检查
         this.checkDependencies();
 
+        // 设置系统配置
+        this.settingsKey = 'gomoku_settings_v6';
+        this.defaultSettings = {
+            showCoordinates: false,
+            enableAnimations: true,
+            soundEnabled: false,
+            autoForbiddenHint: true
+        };
+        this.settings = this.loadSettings();
+
         // 获取DOM元素
         this.initDOMElements();
 
@@ -54,6 +64,12 @@ class InterfaceDemo {
 
         // 绑定事件
         this.bindEvents();
+        
+        // 初始化模态框
+        this.initModals();
+        
+        // 应用设置
+        this.applySettings();
 
         // 更新状态显示
         this.updateStatusDisplay();
@@ -1078,11 +1094,203 @@ class InterfaceDemo {
         if (this.vcfHintButton) this.vcfHintButton.disabled = false;
         if (this.vcfSolutionButton) this.vcfSolutionButton.disabled = false;
     }
+
+    /**
+     * 初始化模态框
+     */
+    initModals() {
+        this.settingsModal = document.getElementById('settings-modal');
+        this.helpModal = document.getElementById('help-modal');
+        
+        this.settingsButton = document.getElementById('settings-button');
+        this.helpButton = document.getElementById('help-button');
+        
+        this.settingsCloseButton = document.getElementById('settings-modal-close');
+        this.helpCloseButton = document.getElementById('help-modal-close');
+        
+        this.settingsSaveButton = document.getElementById('settings-save-button');
+        this.settingsResetButton = document.getElementById('settings-reset-button');
+        this.helpCloseFooterButton = document.getElementById('help-close-button');
+        
+        this.settingCheckboxes = {
+            showCoordinates: document.getElementById('setting-show-coords'),
+            enableAnimations: document.getElementById('setting-animations'),
+            soundEnabled: document.getElementById('setting-sound'),
+            autoForbiddenHint: document.getElementById('setting-auto-hint')
+        };
+        
+        if (this.settingsButton) {
+            this.settingsButton.addEventListener('click', () => this.openSettingsModal());
+        }
+        
+        if (this.helpButton) {
+            this.helpButton.addEventListener('click', () => this.openHelpModal());
+        }
+        
+        if (this.settingsCloseButton) {
+            this.settingsCloseButton.addEventListener('click', () => this.closeSettingsModal());
+        }
+        
+        if (this.helpCloseButton) {
+            this.helpCloseButton.addEventListener('click', () => this.closeHelpModal());
+        }
+        
+        if (this.helpCloseFooterButton) {
+            this.helpCloseFooterButton.addEventListener('click', () => this.closeHelpModal());
+        }
+        
+        if (this.settingsSaveButton) {
+            this.settingsSaveButton.addEventListener('click', () => this.saveSettingsFromModal());
+        }
+        
+        if (this.settingsResetButton) {
+            this.settingsResetButton.addEventListener('click', () => this.resetSettings());
+        }
+        
+        if (this.settingsModal) {
+            this.settingsModal.addEventListener('click', (e) => {
+                if (e.target === this.settingsModal) {
+                    this.closeSettingsModal();
+                }
+            });
+        }
+        
+        if (this.helpModal) {
+            this.helpModal.addEventListener('click', (e) => {
+                if (e.target === this.helpModal) {
+                    this.closeHelpModal();
+                }
+            });
+        }
+        
+        this.updateSettingsModal();
+    }
+
+    /**
+     * 加载设置
+     */
+    loadSettings() {
+        const result = GameUtils.loadFromLocalStorage(this.settingsKey);
+        if (result.success) {
+            return { ...this.defaultSettings, ...result.data };
+        }
+        return { ...this.defaultSettings };
+    }
+
+    /**
+     * 保存设置
+     */
+    saveSettings(settings) {
+        this.settings = { ...settings };
+        GameUtils.saveToLocalStorage(this.settingsKey, this.settings);
+        this.applySettings();
+    }
+
+    /**
+     * 应用设置
+     */
+    applySettings() {
+        if (this.renderer) {
+            this.renderer.showCoordinates = this.settings.showCoordinates;
+            this.renderer.autoForbiddenHint = this.settings.autoForbiddenHint;
+            this.renderer.render();
+        }
+        
+        if (!this.settings.enableAnimations) {
+            document.body.classList.add('no-animations');
+        } else {
+            document.body.classList.remove('no-animations');
+        }
+    }
+
+    /**
+     * 打开设置模态框
+     */
+    openSettingsModal() {
+        if (this.settingsModal) {
+            this.updateSettingsModal();
+            this.settingsModal.style.display = 'flex';
+            this.settingsModal.classList.remove('closing');
+        }
+    }
+
+    /**
+     * 关闭设置模态框
+     */
+    closeSettingsModal() {
+        if (this.settingsModal) {
+            this.settingsModal.classList.add('closing');
+            setTimeout(() => {
+                this.settingsModal.style.display = 'none';
+                this.settingsModal.classList.remove('closing');
+            }, 300);
+        }
+    }
+
+    /**
+     * 更新设置模态框的值
+     */
+    updateSettingsModal() {
+        for (const key in this.settingCheckboxes) {
+            const checkbox = this.settingCheckboxes[key];
+            if (checkbox) {
+                checkbox.checked = this.settings[key] || false;
+            }
+        }
+    }
+
+    /**
+     * 从模态框保存设置
+     */
+    saveSettingsFromModal() {
+        const newSettings = {};
+        for (const key in this.settingCheckboxes) {
+            const checkbox = this.settingCheckboxes[key];
+            if (checkbox) {
+                newSettings[key] = checkbox.checked;
+            }
+        }
+        this.saveSettings(newSettings);
+        this.closeSettingsModal();
+        GameUtils.showMessage('设置已保存！', 'success', 2000);
+    }
+
+    /**
+     * 重置设置
+     */
+    resetSettings() {
+        this.saveSettings(this.defaultSettings);
+        this.updateSettingsModal();
+        GameUtils.showMessage('设置已重置为默认值！', 'info', 2000);
+    }
+
+    /**
+     * 打开帮助模态框
+     */
+    openHelpModal() {
+        if (this.helpModal) {
+            this.helpModal.style.display = 'flex';
+            this.helpModal.classList.remove('closing');
+        }
+    }
+
+    /**
+     * 关闭帮助模态框
+     */
+    closeHelpModal() {
+        if (this.helpModal) {
+            this.helpModal.classList.add('closing');
+            setTimeout(() => {
+                this.helpModal.style.display = 'none';
+                this.helpModal.classList.remove('closing');
+            }, 300);
+        }
+    }
 }
 
 const DEMO_MODULE_INFO = {
     name: 'InterfaceDemo',
-    version: '5.0.0',
+    version: '6.0.0',
     dependencies: ['GameUtils', 'GomokuGame', 'SimpleBoardRenderer', 'GameSaveLoad', 'GameReplay', 'VCFPracticeManager'],
     description: 'UI控制器'
 };
