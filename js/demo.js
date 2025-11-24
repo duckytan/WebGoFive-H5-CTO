@@ -1,7 +1,7 @@
 /**
  * InterfaceDemo - UI控制器
  * 负责初始化应用、绑定事件、协调各模块
- * @version 4.0.0
+ * @version 5.0.0
  */
 
 class InterfaceDemo {
@@ -45,6 +45,7 @@ class InterfaceDemo {
         this.currentVCFLevel = 1;
         this.isVCFMode = false;
         this.vcfBusy = false;
+        this.vcfAutoMoveTimer = null;
 
         // 绑定事件
         this.bindEvents();
@@ -52,6 +53,7 @@ class InterfaceDemo {
         // 更新状态显示
         this.updateStatusDisplay();
         this.updateControlStates();
+        this.updateVCFVisibility();
 
         GameUtils.showMessage('欢迎来到H5五子棋！禁手规则已启用，黑方先手。', 'info', 2000);
     }
@@ -89,7 +91,7 @@ class InterfaceDemo {
             PvP: document.getElementById('mode-pvp'),
             PvE: document.getElementById('mode-pve'),
             EvE: document.getElementById('mode-eve'),
-            VCF: document.getElementById('mode-vcf')
+            VCF_PRACTICE: document.getElementById('mode-vcf')
         };
         this.difficultySelect = document.getElementById('difficulty-select');
         this.difficultyWrapper = document.querySelector('.difficulty-wrapper');
@@ -167,8 +169,8 @@ class InterfaceDemo {
             });
         }
 
-        if (this.modeButtons.VCF) {
-            this.modeButtons.VCF.addEventListener('click', () => {
+        if (this.modeButtons.VCF_PRACTICE) {
+            this.modeButtons.VCF_PRACTICE.addEventListener('click', () => {
                 this.switchMode('VCF_PRACTICE');
             });
         }
@@ -358,7 +360,7 @@ class InterfaceDemo {
 
     /**
      * 切换游戏模式
-     * @param {string} mode - 游戏模式 (PvP/PvE/EvE)
+     * @param {string} mode - 游戏模式 (PvP/PvE/EvE/VCF_PRACTICE)
      */
     switchMode(mode) {
         if (this.aiThinking) {
@@ -367,19 +369,71 @@ class InterfaceDemo {
         }
 
         this.currentMode = mode;
+        this.isVCFMode = (mode === 'VCF_PRACTICE');
+        
         this.updateModeDisplay();
         this.updateModeButtons();
-        this.startNewGame();
+        this.updateVCFVisibility();
+        
+        if (mode === 'VCF_PRACTICE') {
+            // 进入VCF模式
+            this.startVCFPuzzle();
+        } else {
+            // 退出VCF模式
+            this.currentVCFPuzzle = null;
+            this.startNewGame();
+        }
 
         const messages = {
             'PvP': '切换到双人对战模式',
             'PvE': `切换到人机对战模式 (${this.getDifficultyName(this.aiDifficulty)})`,
-            'EvE': `切换到AI演示模式 (${this.getDifficultyName(this.aiDifficulty)})`
+            'EvE': `切换到AI演示模式 (${this.getDifficultyName(this.aiDifficulty)})`,
+            'VCF_PRACTICE': 'VCF练习模式'
         };
-        GameUtils.showMessage(messages[mode], 'info');
+        GameUtils.showMessage(messages[mode] || mode, 'info');
 
         if (mode === 'EvE') {
             setTimeout(() => this.executeAIMove(), 500);
+        }
+    }
+
+    /**
+     * 更新VCF UI可见性
+     */
+    updateVCFVisibility() {
+        const isVCF = this.currentMode === 'VCF_PRACTICE';
+        
+        // 显示/隐藏VCF相关UI
+        if (this.vcfLevelWrapper) {
+            this.vcfLevelWrapper.style.display = isVCF ? 'flex' : 'none';
+        }
+        if (this.vcfActionsGroup) {
+            this.vcfActionsGroup.style.display = isVCF ? 'flex' : 'none';
+        }
+        if (this.vcfStatusCard) {
+            this.vcfStatusCard.style.display = isVCF ? 'block' : 'none';
+        }
+        
+        // 隐藏/显示其他模式的UI
+        const saveLoadGroup = document.querySelector('.save-load-group');
+        const replayGroup = document.querySelector('.replay-group');
+        const replayControls = document.querySelector('.replay-controls');
+        const replayProgress = document.querySelector('.replay-progress');
+        
+        if (saveLoadGroup) {
+            saveLoadGroup.style.display = isVCF ? 'none' : 'flex';
+        }
+        if (replayGroup) {
+            replayGroup.style.display = isVCF ? 'none' : 'flex';
+        }
+        if (replayControls) {
+            replayControls.style.display = isVCF ? 'none' : 'flex';
+        }
+        if (replayProgress) {
+            replayProgress.style.display = isVCF ? 'none' : 'flex';
+        }
+        if (this.statusPanel) {
+            this.statusPanel.style.display = isVCF ? 'none' : 'block';
         }
     }
 
@@ -443,10 +497,12 @@ class InterfaceDemo {
      * 更新模式显示信息
      */
     updateModeDisplay() {
+        const levelNames = { 1: '入门', 2: '初级', 3: '中级', 4: '高级' };
         const modeMap = {
             PvP: 'PvP - 双人对战',
             PvE: 'PvE - 人机对战',
-            EvE: 'EvE - AI演示'
+            EvE: 'EvE - AI演示',
+            VCF_PRACTICE: `VCF练习 - ${levelNames[this.currentVCFLevel]}`
         };
         this.modeDisplayText = modeMap[this.currentMode] || this.currentMode;
     }
@@ -464,12 +520,16 @@ class InterfaceDemo {
             }
         });
 
-        const showDifficulty = this.currentMode === 'PvE' || this.currentMode === 'EvE';
+        const showDifficulty = this.currentMode !== 'VCF_PRACTICE' && (this.currentMode === 'PvE' || this.currentMode === 'EvE');
         if (this.difficultyWrapper) {
             this.difficultyWrapper.style.display = showDifficulty ? 'flex' : 'none';
         }
         if (this.difficultySelect) {
             this.difficultySelect.value = this.aiDifficulty;
+        }
+
+        if (this.vcfLevelSelect) {
+            this.vcfLevelSelect.value = String(this.currentVCFLevel);
         }
     }
 
@@ -641,42 +701,248 @@ class InterfaceDemo {
      * 开始VCF练习
      */
     startVCFPuzzle() {
-        GameUtils.showMessage('VCF练习模式开发中，请期待后续版本！', 'info', 3000);
-        console.log('[VCF] 题库已就绪，等待UI完整集成');
-        console.log('[VCF] 题库数量:', this.vcfManager.puzzles.length);
-        console.log('[VCF] 当前难度:', this.currentVCFLevel);
-        const progress = this.vcfManager.getProgress();
-        console.log('[VCF] 完成进度:', progress);
+        if (this.vcfBusy) return;
+        
+        const puzzle = this.vcfManager.getRandomPuzzle(this.currentVCFLevel);
+        if (!puzzle) {
+            GameUtils.showMessage('未找到合适的题目', 'error');
+            return;
+        }
+
+        this.currentVCFPuzzle = puzzle;
+        this.isVCFMode = true;
+        
+        // 重置游戏
+        this.game.reset();
+        this.renderer.winHighlight = null;
+        this.renderer.setInteractive(true);
+        if (typeof this.renderer.clearForbiddenHighlight === 'function') {
+            this.renderer.clearForbiddenHighlight();
+        }
+
+        // 设置初始局面
+        puzzle.initialState.forEach(move => {
+            this.game.placePiece(move.x, move.y);
+        });
+
+        this.renderer.render();
+        this.updateVCFUI();
+        
+        const levelNames = { 1: '入门', 2: '初级', 3: '中级', 4: '高级' };
+        GameUtils.showMessage(
+            `${puzzle.name} - ${levelNames[this.currentVCFLevel]}\n${puzzle.description}`, 
+            'info', 
+            3000
+        );
     }
 
     /**
      * 重启VCF题目
      */
     restartVCFPuzzle() {
-        GameUtils.showMessage('VCF重启功能开发中', 'info', 2000);
+        if (!this.currentVCFPuzzle) {
+            GameUtils.showMessage('没有正在进行的题目', 'warning');
+            return;
+        }
+        
+        this.vcfManager.resetPuzzle();
+        
+        // 重置游戏
+        this.game.reset();
+        this.renderer.winHighlight = null;
+        if (typeof this.renderer.clearForbiddenHighlight === 'function') {
+            this.renderer.clearForbiddenHighlight();
+        }
+
+        // 重新设置初始局面
+        this.currentVCFPuzzle.initialState.forEach(move => {
+            this.game.placePiece(move.x, move.y);
+        });
+
+        this.renderer.render();
+        this.updateVCFUI();
+        
+        GameUtils.showMessage('题目已重置', 'info', 1500);
     }
 
     /**
      * 显示VCF提示
      */
     showVCFHint() {
+        if (!this.currentVCFPuzzle) {
+            GameUtils.showMessage('请先开始一道题目', 'warning');
+            return;
+        }
+        
         const hint = this.vcfManager.getHint();
-        GameUtils.showMessage(`提示: ${hint}`, 'info', 3000);
+        const correctMove = this.vcfManager.getCurrentCorrectMove();
+        
+        let message = `提示: ${hint}`;
+        if (correctMove) {
+            message += `\n下一步应该是 (${correctMove.x}, ${correctMove.y})`;
+        }
+        
+        GameUtils.showMessage(message, 'info', 4000);
     }
 
     /**
      * 显示VCF解法
      */
     showVCFSolution() {
-        GameUtils.showMessage('解法查看功能开发中', 'info', 2000);
+        if (!this.currentVCFPuzzle) {
+            GameUtils.showMessage('请先开始一道题目', 'warning');
+            return;
+        }
+        
+        const solution = this.vcfManager.getSolution();
+        let message = '完整解法:\n';
+        solution.forEach((move, index) => {
+            const playerText = move.player === 1 ? '黑' : '白';
+            message += `${index + 1}. ${playerText}(${move.x},${move.y}) - ${move.description}\n`;
+        });
+        
+        console.log('[VCF] 完整解法:', solution);
+        GameUtils.showMessage('解法已输出到控制台', 'info', 2000);
     }
 
     /**
      * 处理VCF练习落子
      */
     handleVCFPracticeMove(x, y) {
-        console.log('[VCF] 玩家落子:', x, y);
-        GameUtils.showMessage('VCF练习落子功能开发中', 'info', 2000);
+        if (!this.currentVCFPuzzle || this.vcfBusy) {
+            return;
+        }
+
+        // 验证走法
+        const result = this.vcfManager.validateMove(x, y);
+        
+        if (!result.success) {
+            GameUtils.showMessage(result.error, 'error');
+            return;
+        }
+
+        if (result.correct) {
+            // 走法正确
+            const placedResult = this.game.placePiece(x, y);
+            if (placedResult.success) {
+                this.renderer.render();
+                GameUtils.showMessage(`✓ ${result.message}`, 'success', 1500);
+
+                if (result.isCompleted) {
+                    // 题目完成
+                    this.handleVCFPuzzleComplete();
+                } else if (result.nextMove && result.nextMove.player === 2) {
+                    // AI防守
+                    this.vcfBusy = true;
+                    setTimeout(() => {
+                        this.executeVCFAIMove(result.nextMove);
+                        this.vcfBusy = false;
+                    }, 500);
+                }
+                
+                this.updateVCFUI();
+            }
+        } else {
+            // 走法错误
+            const correctMove = result.correctMove;
+            GameUtils.showMessage(
+                `✗ ${result.message}\n正确位置: (${correctMove.x}, ${correctMove.y})\n提示: ${result.hint}`,
+                'warning',
+                4000
+            );
+        }
+    }
+
+    /**
+     * 执行VCF AI防守
+     */
+    executeVCFAIMove(move) {
+        if (!move || move.player !== 2) return;
+
+        const result = this.game.placePiece(move.x, move.y);
+        if (result.success) {
+            this.renderer.render();
+            GameUtils.showMessage(`AI: ${move.description || '防守'}`, 'info', 1500);
+            this.updateVCFUI();
+        }
+    }
+
+    /**
+     * 处理VCF题目完成
+     */
+    handleVCFPuzzleComplete() {
+        this.renderer.setInteractive(false);
+        
+        const progress = this.vcfManager.getProgress();
+        const levelProgress = progress.byLevel[this.currentVCFLevel];
+        
+        GameUtils.showMessage(
+            `🎉 题目完成！\nLevel ${this.currentVCFLevel} 进度: ${levelProgress}/10\n总进度: ${progress.percentage}%`,
+            'success',
+            3000
+        );
+
+        setTimeout(() => {
+            if (levelProgress >= 10) {
+                GameUtils.showMessage(`Level ${this.currentVCFLevel} 全部完成！太棒了！🎊`, 'success', 2000);
+            }
+            // 自动加载下一题
+            setTimeout(() => {
+                this.startVCFPuzzle();
+            }, 1500);
+        }, 2000);
+    }
+
+    /**
+     * 更新VCF UI显示
+     */
+    updateVCFUI() {
+        if (!this.currentVCFPuzzle) return;
+
+        const puzzle = this.currentVCFPuzzle;
+        const progress = this.vcfManager.getProgress();
+        const levelNames = { 1: '入门', 2: '初级', 3: '中级', 4: '高级' };
+
+        // 更新题目信息
+        if (this.vcfPuzzleNameEl) {
+            this.vcfPuzzleNameEl.textContent = puzzle.name;
+        }
+        if (this.vcfPuzzleLevelEl) {
+            this.vcfPuzzleLevelEl.textContent = `Level ${puzzle.level} - ${levelNames[puzzle.level]}`;
+        }
+        if (this.vcfPuzzleDescriptionEl) {
+            this.vcfPuzzleDescriptionEl.textContent = puzzle.description;
+        }
+
+        // 更新进度
+        if (this.vcfProgressTextEl) {
+            this.vcfProgressTextEl.textContent = `${this.vcfManager.currentStep} / ${puzzle.solution.length}`;
+        }
+        if (this.vcfOverallProgressEl) {
+            this.vcfOverallProgressEl.textContent = `${progress.completed} / 40 (${progress.percentage}%)`;
+        }
+
+        // 更新提示
+        if (this.vcfHintTextEl) {
+            const hint = this.vcfManager.getHint();
+            this.vcfHintTextEl.textContent = hint;
+        }
+
+        // 更新下一步
+        if (this.vcfNextStepTextEl) {
+            const nextMove = this.vcfManager.getCurrentCorrectMove();
+            if (nextMove) {
+                const playerText = nextMove.player === 1 ? '黑方' : '白方';
+                this.vcfNextStepTextEl.textContent = `${playerText}: ${nextMove.description}`;
+            } else {
+                this.vcfNextStepTextEl.textContent = '题目即将完成';
+            }
+        }
+
+        // 启用按钮
+        if (this.vcfRestartButton) this.vcfRestartButton.disabled = false;
+        if (this.vcfHintButton) this.vcfHintButton.disabled = false;
+        if (this.vcfSolutionButton) this.vcfSolutionButton.disabled = false;
     }
 }
 
