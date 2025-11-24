@@ -1,13 +1,15 @@
 /**
  * GomokuGame - 核心游戏引擎
- * 负责棋盘状态、落子逻辑、胜负判定等核心流程
- * @version 1.0.0
+ * 负责棋盘状态、落子逻辑、胜负判定、AI决策等核心流程
+ * @version 3.0.0
  */
 
 class GomokuGame {
     constructor(options = {}) {
-        const { boardSize = 15 } = options;
+        const { boardSize = 15, gameMode = 'PvP' } = options;
         this.BOARD_SIZE = boardSize;
+        this.gameMode = gameMode;
+        this.advancedAI = null;
         this.reset();
     }
 
@@ -25,6 +27,24 @@ class GomokuGame {
         this.winner = null;
         this.winLine = null;
         return this;
+    }
+
+    /**
+     * 设置游戏模式
+     * @param {string} mode - PvP/PvE/EvE
+     * @returns {GomokuGame}
+     */
+    setGameMode(mode = 'PvP') {
+        this.gameMode = mode;
+        return this;
+    }
+
+    /**
+     * 获取当前游戏模式
+     * @returns {string}
+     */
+    getGameMode() {
+        return this.gameMode;
     }
 
     /**
@@ -466,11 +486,206 @@ class GomokuGame {
         }
         return count;
     }
+
+    /**
+     * 获取候选落子位置
+     * @param {number} range - 搜索范围（已有棋子周围n格）
+     * @param {number} limit - 最多返回数量
+     * @returns {Array<{x: number, y: number}>}
+     */
+    getCandidateMoves(range = 2, limit = 20) {
+        const candidates = new Set();
+        
+        if (this.moves.length === 0) {
+            const center = Math.floor(this.BOARD_SIZE / 2);
+            return [{ x: center, y: center }];
+        }
+
+        for (let y = 0; y < this.BOARD_SIZE; y++) {
+            for (let x = 0; x < this.BOARD_SIZE; x++) {
+                if (this.board[y][x] !== 0) {
+                    for (let dy = -range; dy <= range; dy++) {
+                        for (let dx = -range; dx <= range; dx++) {
+                            const nx = x + dx;
+                            const ny = y + dy;
+                            if (
+                                GameUtils.isValidPosition(nx, ny, this.BOARD_SIZE) &&
+                                this.board[ny][nx] === 0
+                            ) {
+                                candidates.add(`${nx},${ny}`);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        const result = Array.from(candidates).map(pos => {
+            const [x, y] = pos.split(',').map(Number);
+            return { x, y };
+        });
+
+        return result.slice(0, limit);
+    }
+
+    /**
+     * 评估某位置的分数
+     * @param {number} x - X坐标
+     * @param {number} y - Y坐标
+     * @param {number} player - 玩家
+     * @returns {number}
+     */
+    evaluatePosition(x, y, player) {
+        if (this.board[y][x] !== 0) {
+            return -Infinity;
+        }
+
+        this.board[y][x] = player;
+        let score = 0;
+
+        const winCheck = this.checkWin(x, y);
+        if (winCheck.hasWon) {
+            this.board[y][x] = 0;
+            return 100000;
+        }
+
+        if (player === 1) {
+            const forbiddenCheck = this.checkForbidden(x, y);
+            if (forbiddenCheck.isForbidden) {
+                this.board[y][x] = 0;
+                return -Infinity;
+            }
+        }
+
+        const directions = [
+            { dx: 1, dy: 0 },
+            { dx: 0, dy: 1 },
+            { dx: 1, dy: 1 },
+            { dx: 1, dy: -1 }
+        ];
+
+        for (const { dx, dy } of directions) {
+            const forward = this.getLine(x, y, dx, dy, player);
+            const backward = this.getLine(x, y, -dx, -dy, player);
+            const total = 1 + forward + backward;
+
+            const forwardEmpty = this.getLine(x, y, dx, dy, 0);
+            const backwardEmpty = this.getLine(x, y, -dx, -dy, 0);
+            const openEnds = (forwardEmpty > 0 ? 1 : 0) + (backwardEmpty > 0 ? 1 : 0);
+
+            if (total === 4 && openEnds === 2) score += 10000;
+            else if (total === 4 && openEnds === 1) score += 1000;
+            else if (total === 3 && openEnds === 2) score += 500;
+            else if (total === 3 && openEnds === 1) score += 100;
+            else if (total === 2 && openEnds === 2) score += 50;
+            else if (total === 2 && openEnds === 1) score += 10;
+            else if (total === 1 && openEnds === 2) score += 5;
+        }
+
+        this.board[y][x] = 0;
+        return score;
+    }
+
+    /**
+     * 寻找必胜点
+     * @param {number} player - 玩家
+     * @returns {{x: number, y: number}|null}
+     */
+    findWinningMove(player) {
+        const candidates = this.getCandidateMoves(2, 50);
+        
+        for (const { x, y } of candidates) {
+            this.board[y][x] = player;
+            const winCheck = this.checkWin(x, y);
+            this.board[y][x] = 0;
+            
+            if (winCheck.hasWon) {
+                return { x, y };
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * AI决策入口
+     * @param {string} difficulty - 难度: BEGINNER, NORMAL, HARD, HELL
+     * @returns {{x: number, y: number}|null}
+     */
+    getAIMove(difficulty = 'NORMAL') {
+        if (this.gameOver) {
+            return null;
+        }
+
+        const difficultyMap = {
+            'BEGINNER': this.getAIMoveBeginner.bind(this),
+            'NORMAL': this.getAIMoveNormal.bind(this),
+            'HARD': this.getAIMoveNormal.bind(this),
+            'HELL': this.getAIMoveNormal.bind(this)
+        };
+
+        const moveFunc = difficultyMap[difficulty] || difficultyMap['NORMAL'];
+        return moveFunc();
+    }
+
+    /**
+     * 新手AI - 随机落子在候选位置
+     * @returns {{x: number, y: number}|null}
+     */
+    getAIMoveBeginner() {
+        const candidates = this.getCandidateMoves(2, 30);
+        if (candidates.length === 0) {
+            return null;
+        }
+        
+        const randomIndex = Math.floor(Math.random() * candidates.length);
+        return candidates[randomIndex];
+    }
+
+    /**
+     * 普通AI - 基于评分的贪心算法
+     * @returns {{x: number, y: number}|null}
+     */
+    getAIMoveNormal() {
+        const player = this.currentPlayer;
+        const opponent = player === 1 ? 2 : 1;
+
+        const myWin = this.findWinningMove(player);
+        if (myWin) {
+            return myWin;
+        }
+
+        const opponentWin = this.findWinningMove(opponent);
+        if (opponentWin) {
+            return opponentWin;
+        }
+
+        const candidates = this.getCandidateMoves(2, 30);
+        if (candidates.length === 0) {
+            return null;
+        }
+
+        let bestMove = null;
+        let bestScore = -Infinity;
+
+        for (const { x, y } of candidates) {
+            const myScore = this.evaluatePosition(x, y, player);
+            const oppScore = this.evaluatePosition(x, y, opponent);
+            const totalScore = myScore * 1.2 + oppScore;
+
+            if (totalScore > bestScore) {
+                bestScore = totalScore;
+                bestMove = { x, y };
+            }
+        }
+
+        return bestMove;
+    }
 }
 
 const GAME_CORE_MODULE_INFO = {
     name: 'GomokuGame',
-    version: '2.0.0',
+    version: '3.0.0',
     dependencies: ['GameUtils'],
     description: '五子棋核心引擎'
 };

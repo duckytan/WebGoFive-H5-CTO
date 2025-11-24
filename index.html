@@ -28,7 +28,21 @@
         </section>
 
         <section class="controls-section">
-            <div class="control-group">
+            <div class="control-group mode-group">
+                <button id="mode-pvp" type="button" class="mode-button active">PvP</button>
+                <button id="mode-pve" type="button" class="mode-button">PvE</button>
+                <button id="mode-eve" type="button" class="mode-button">EvE</button>
+            </div>
+            <div class="control-group difficulty-wrapper">
+                <label for="difficulty-select">AI难度</label>
+                <select id="difficulty-select">
+                    <option value="BEGINNER">新手</option>
+                    <option value="NORMAL" selected>普通</option>
+                    <option value="HARD">困难</option>
+                    <option value="HELL">地狱</option>
+                </select>
+            </div>
+            <div class="control-group primary-actions">
                 <button id="new-game-button" type="button">
                     新游戏
                 </button>
@@ -42,13 +56,14 @@
         </section>
 
         <footer class="app-footer">
-            <p>模块加载顺序: utils → game-core → board-renderer → demo</p>
-            <p class="version-info">版本: v2.0.0 (Stage 2 完成)</p>
+            <p>模块加载顺序: utils → game-core → ai-advanced → board-renderer → demo</p>
+            <p class="version-info">版本: v3.0.0 (Stage 3 完成)</p>
         </footer>
     </main>
 
     <script src="js/utils.js"></script>
     <script src="js/game-core.js"></script>
+    <script src="js/ai-advanced.js"></script>
     <script src="js/board-renderer.js"></script>
     <script src="js/demo.js"></script>
 </body>
