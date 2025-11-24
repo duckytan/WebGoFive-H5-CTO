@@ -28,10 +28,56 @@
         </section>
 
         <section class="controls-section">
-            <div class="control-group">
+            <div class="control-group mode-group">
+                <button id="mode-pvp" type="button" class="mode-button active">PvP</button>
+                <button id="mode-pve" type="button" class="mode-button">PvE</button>
+                <button id="mode-eve" type="button" class="mode-button">EvE</button>
+            </div>
+            <div class="control-group difficulty-wrapper">
+                <label for="difficulty-select">AI难度</label>
+                <select id="difficulty-select">
+                    <option value="BEGINNER">新手</option>
+                    <option value="NORMAL" selected>普通</option>
+                    <option value="HARD">困难</option>
+                    <option value="HELL">地狱</option>
+                </select>
+            </div>
+            <div class="control-group primary-actions">
                 <button id="new-game-button" type="button">
                     新游戏
                 </button>
+                <button id="undo-button" type="button" disabled>
+                    悔棋
+                </button>
+            </div>
+            <div class="control-group save-load-group">
+                <button id="save-button" type="button">保存棋局</button>
+                <button id="load-button" type="button">加载棋局</button>
+                <button id="auto-save-button" type="button">自动保存：关闭</button>
+            </div>
+            <div class="control-group replay-group">
+                <button id="replay-current-button" type="button">回放当前</button>
+                <button id="replay-loaded-button" type="button">回放载入</button>
+                <button id="replay-stop-button" type="button">退出回放</button>
+            </div>
+            <div class="control-group replay-controls">
+                <button id="replay-play-button" type="button">播放</button>
+                <button id="replay-pause-button" type="button">暂停</button>
+                <button id="replay-step-backward-button" type="button">上一步</button>
+                <button id="replay-step-forward-button" type="button">下一步</button>
+                <label class="replay-speed-label">
+                    速度
+                    <select id="replay-speed-select">
+                        <option value="0.5">0.5x</option>
+                        <option value="1" selected>1x</option>
+                        <option value="2">2x</option>
+                        <option value="3">3x</option>
+                    </select>
+                </label>
+            </div>
+            <div class="replay-progress">
+                <input type="range" id="replay-progress" min="0" max="100" value="0">
+                <span id="replay-progress-label">0 / 0</span>
             </div>
             <div class="status-panel" id="status-panel">
                 <p>正在初始化...</p>
@@ -39,14 +85,17 @@
         </section>
 
         <footer class="app-footer">
-            <p>模块加载顺序: utils → game-core → board-renderer → demo</p>
-            <p class="version-info">版本: v1.0.0 (Stage 1 完成)</p>
+            <p>模块加载顺序: utils → game-core → ai-advanced → save-load → replay → board-renderer → demo</p>
+            <p class="version-info">版本: v4.0.0 (Stage 4 完成)</p>
         </footer>
     </main>
 
     <script src="js/utils.js"></script>
     <script src="js/game-core.js"></script>
+    <script src="js/ai-advanced.js"></script>
     <script src="js/board-renderer.js"></script>
+    <script src="js/game-save-load.js"></script>
+    <script src="js/game-replay.js"></script>
     <script src="js/demo.js"></script>
 </body>
 </html>
