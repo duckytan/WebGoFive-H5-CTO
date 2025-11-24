@@ -1,7 +1,7 @@
 /**
  * GomokuGame - 核心游戏引擎
  * 负责棋盘状态、落子逻辑、胜负判定、AI决策等核心流程
- * @version 3.0.0
+ * @version 4.0.0
  */
 
 class GomokuGame {

@@ -1,7 +1,7 @@
 /**
  * InterfaceDemo - UI控制器
  * 负责初始化应用、绑定事件、协调各模块
- * @version 1.0.0
+ * @version 4.0.0
  */
 
 class InterfaceDemo {
@@ -20,6 +20,25 @@ class InterfaceDemo {
             onMove: (result) => this.handleMoveResult(result)
         });
 
+        // 初始化存档管理
+        this.saveLoadManager = new GameSaveLoad(this.game, this.renderer);
+        const originalLoadGameFromData = this.saveLoadManager.loadGameFromData.bind(this.saveLoadManager);
+        this.saveLoadManager.loadGameFromData = (data) => {
+            const result = originalLoadGameFromData(data);
+            if (result.success) {
+                this.lastLoadedGameData = GameUtils.deepClone(data);
+                this.stopReplayIfNeeded();
+                this.updateControlStates();
+            }
+            return result;
+        };
+
+        // 初始化回放系统
+        this.replayManager = new GameReplay(this.game, this.renderer, {
+            onUpdate: (state) => this.updateReplayUI(state),
+            onStateChange: (state) => this.handleReplayStateChange(state)
+        });
+
         // 绑定事件
         this.bindEvents();
 
@@ -34,7 +53,7 @@ class InterfaceDemo {
      * 检查必需依赖
      */
     checkDependencies() {
-        const required = ['GameUtils', 'GomokuGame', 'SimpleBoardRenderer'];
+        const required = ['GameUtils', 'GomokuGame', 'SimpleBoardRenderer', 'GameSaveLoad', 'GameReplay'];
         const missing = [];
 
         required.forEach(dep => {
@@ -66,6 +85,19 @@ class InterfaceDemo {
         };
         this.difficultySelect = document.getElementById('difficulty-select');
         this.difficultyWrapper = document.querySelector('.difficulty-wrapper');
+        this.saveButton = document.getElementById('save-button');
+        this.loadButton = document.getElementById('load-button');
+        this.autoSaveButton = document.getElementById('auto-save-button');
+        this.replayCurrentButton = document.getElementById('replay-current-button');
+        this.replayLoadedButton = document.getElementById('replay-loaded-button');
+        this.replayStopButton = document.getElementById('replay-stop-button');
+        this.replayPlayButton = document.getElementById('replay-play-button');
+        this.replayPauseButton = document.getElementById('replay-pause-button');
+        this.replayStepBackwardButton = document.getElementById('replay-step-backward-button');
+        this.replayStepForwardButton = document.getElementById('replay-step-forward-button');
+        this.replaySpeedSelect = document.getElementById('replay-speed-select');
+        this.replayProgressInput = document.getElementById('replay-progress');
+        this.replayProgressLabel = document.getElementById('replay-progress-label');
 
         if (!this.canvas || !this.newGameButton || !this.undoButton || !this.statusPanel) {
             throw new Error('[InterfaceDemo] 关键DOM元素未找到');
@@ -74,6 +106,9 @@ class InterfaceDemo {
         this.currentMode = 'PvP';
         this.aiDifficulty = 'NORMAL';
         this.aiThinking = false;
+        this.autoSaveEnabled = false;
+        this.lastLoadedGameData = null;
+        this.isReplaying = false;
         this.modeDisplayText = '';
         this.updateModeDisplay();
         this.updateModeButtons();
@@ -115,6 +150,59 @@ class InterfaceDemo {
                 GameUtils.showMessage(`AI难度已设置为 ${this.getDifficultyName(this.aiDifficulty)}`, 'info', 1500);
             });
         }
+
+        if (this.saveButton) {
+            this.saveButton.addEventListener('click', () => this.handleSave());
+        }
+
+        if (this.loadButton) {
+            this.loadButton.addEventListener('click', () => this.handleLoad());
+        }
+
+        if (this.autoSaveButton) {
+            this.autoSaveButton.addEventListener('click', () => this.toggleAutoSave());
+        }
+
+        if (this.replayCurrentButton) {
+            this.replayCurrentButton.addEventListener('click', () => this.handleReplayCurrent());
+        }
+
+        if (this.replayLoadedButton) {
+            this.replayLoadedButton.addEventListener('click', () => this.handleReplayLoaded());
+        }
+
+        if (this.replayStopButton) {
+            this.replayStopButton.addEventListener('click', () => this.handleReplayStop());
+        }
+
+        if (this.replayPlayButton) {
+            this.replayPlayButton.addEventListener('click', () => this.handleReplayPlay());
+        }
+
+        if (this.replayPauseButton) {
+            this.replayPauseButton.addEventListener('click', () => this.handleReplayPause());
+        }
+
+        if (this.replayStepBackwardButton) {
+            this.replayStepBackwardButton.addEventListener('click', () => this.handleReplayStepBackward());
+        }
+
+        if (this.replayStepForwardButton) {
+            this.replayStepForwardButton.addEventListener('click', () => this.handleReplayStepForward());
+        }
+
+        if (this.replaySpeedSelect) {
+            this.replaySpeedSelect.addEventListener('change', (e) => {
+                this.replayManager.setSpeed(parseFloat(e.target.value));
+            });
+        }
+
+        if (this.replayProgressInput) {
+            this.replayProgressInput.addEventListener('input', (e) => {
+                const targetStep = Math.round((e.target.value / 100) * (this.replayManager.replayData?.moves.length || 0));
+                this.replayManager.jumpToStep(targetStep);
+            });
+        }
     }
 
     /**
@@ -123,6 +211,11 @@ class InterfaceDemo {
      */
     handleMoveResult(result) {
         if (!result || !result.success) {
+            return;
+        }
+
+        if (this.isReplaying) {
+            this.updateReplayUI(this.getReplayStateSnapshot());
             return;
         }
 
@@ -149,6 +242,7 @@ class InterfaceDemo {
      * 开始新游戏
      */
     startNewGame() {
+        this.stopReplayIfNeeded();
         this.game.reset();
         if (this.renderer) {
             this.renderer.winHighlight = null;
@@ -167,6 +261,11 @@ class InterfaceDemo {
      * 悔棋一步
      */
     handleUndo() {
+        if (this.isReplaying) {
+            GameUtils.showMessage('回放模式下不能悔棋', 'warning');
+            return;
+        }
+        
         const result = this.game.undo();
         if (!result.success) {
             GameUtils.showMessage(result.error, 'warning');
@@ -330,7 +429,7 @@ class InterfaceDemo {
         this.statusPanel.innerHTML = `
             <div class="info-item">
                 <span class="info-label">当前阶段:</span>
-                <span class="info-value">Stage 3 - AI系统 ✅</span>
+                <span class="info-value">Stage 4 - 存档回放 ✅</span>
             </div>
             <div class="info-item">
                 <span class="info-label">当前模式:</span>
@@ -352,19 +451,129 @@ class InterfaceDemo {
      */
     updateControlStates() {
         if (this.undoButton) {
-            this.undoButton.disabled = this.game.moves.length === 0 || this.currentMode === 'EvE';
+            this.undoButton.disabled = this.game.moves.length === 0 || this.currentMode === 'EvE' || this.isReplaying;
         }
 
         if (this.difficultySelect) {
             this.difficultySelect.disabled = this.currentMode === 'PvP';
         }
     }
+
+    handleSave() {
+        if (this.game.moves.length === 0) {
+            GameUtils.showMessage('没有可保存的棋局', 'warning');
+            return;
+        }
+        this.saveLoadManager.saveGame();
+    }
+
+    handleLoad() {
+        this.saveLoadManager.loadGame();
+    }
+
+    toggleAutoSave() {
+        if (this.autoSaveEnabled) {
+            this.saveLoadManager.disableAutoSave();
+            this.autoSaveEnabled = false;
+            if (this.autoSaveButton) {
+                this.autoSaveButton.textContent = '自动保存：关闭';
+            }
+            GameUtils.showMessage('自动保存已关闭', 'info', 1500);
+        } else {
+            this.saveLoadManager.enableAutoSave(60000);
+            this.autoSaveEnabled = true;
+            if (this.autoSaveButton) {
+                this.autoSaveButton.textContent = '自动保存：开启';
+            }
+            GameUtils.showMessage('自动保存已开启（每分钟）', 'success', 1500);
+        }
+    }
+
+    handleReplayCurrent() {
+        if (this.game.moves.length === 0) {
+            GameUtils.showMessage('没有可回放的棋局', 'warning');
+            return;
+        }
+        const gameData = this.saveLoadManager.getCurrentGameData();
+        this.replayManager.startReplay(gameData);
+        this.isReplaying = true;
+        GameUtils.showMessage('开始回放当前棋局', 'info', 1500);
+    }
+
+    handleReplayLoaded() {
+        if (!this.lastLoadedGameData) {
+            GameUtils.showMessage('请先加载一个棋局', 'warning');
+            return;
+        }
+        this.replayManager.startReplay(this.lastLoadedGameData);
+        this.isReplaying = true;
+        GameUtils.showMessage('开始回放载入的棋局', 'info', 1500);
+    }
+
+    handleReplayStop() {
+        this.replayManager.stop();
+        this.isReplaying = false;
+        this.updateControlStates();
+        GameUtils.showMessage('已退出回放模式', 'info', 1500);
+    }
+
+    handleReplayPlay() {
+        this.replayManager.play();
+    }
+
+    handleReplayPause() {
+        this.replayManager.pause();
+    }
+
+    handleReplayStepBackward() {
+        this.replayManager.stepBackward();
+    }
+
+    handleReplayStepForward() {
+        this.replayManager.stepForward();
+    }
+
+    updateReplayUI(state) {
+        if (this.replayProgressInput) {
+            this.replayProgressInput.value = state.progress;
+        }
+        if (this.replayProgressLabel) {
+            this.replayProgressLabel.textContent = `${state.currentStep} / ${state.totalSteps}`;
+        }
+    }
+
+    handleReplayStateChange(state) {
+        const controlsDisabled = !state.hasData;
+        if (this.replayPlayButton) this.replayPlayButton.disabled = controlsDisabled || state.isPlaying;
+        if (this.replayPauseButton) this.replayPauseButton.disabled = controlsDisabled || !state.isPlaying;
+        if (this.replayStepBackwardButton) this.replayStepBackwardButton.disabled = controlsDisabled;
+        if (this.replayStepForwardButton) this.replayStepForwardButton.disabled = controlsDisabled;
+        if (this.replaySpeedSelect) this.replaySpeedSelect.disabled = controlsDisabled;
+        if (this.replayProgressInput) this.replayProgressInput.disabled = controlsDisabled;
+    }
+
+    stopReplayIfNeeded() {
+        if (this.isReplaying) {
+            this.replayManager.stop();
+            this.isReplaying = false;
+        }
+    }
+
+    getReplayStateSnapshot() {
+        return {
+            currentStep: this.replayManager.currentStep,
+            totalSteps: this.replayManager.replayData ? this.replayManager.replayData.moves.length : 0,
+            progress: this.replayManager.getProgress(),
+            isPlaying: this.replayManager.isPlaying,
+            speed: this.replayManager.speed
+        };
+    }
 }
 
 const DEMO_MODULE_INFO = {
     name: 'InterfaceDemo',
-    version: '3.0.0',
-    dependencies: ['GameUtils', 'GomokuGame', 'SimpleBoardRenderer'],
+    version: '4.0.0',
+    dependencies: ['GameUtils', 'GomokuGame', 'SimpleBoardRenderer', 'GameSaveLoad', 'GameReplay'],
     description: 'UI控制器'
 };
 
