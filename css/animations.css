@@ -74,7 +74,7 @@
     }
 }
 
-/* 光标悬停高亮（预留） */
+/* 光标悬停高亮 */
 .hover-highlight {
     animation: hoverPulse 1.2s infinite;
 }
@@ -88,5 +88,185 @@
     }
     100% {
         opacity: 0.6;
+    }
+}
+
+/* AI思考中动画 */
+@keyframes thinking {
+    0%, 100% {
+        opacity: 0.3;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+.ai-thinking {
+    position: relative;
+}
+
+.ai-thinking::after {
+    content: '...';
+    animation: thinking 1.5s infinite;
+}
+
+/* 加载动画 */
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* 胜利线条闪烁动画 */
+@keyframes winLineFlash {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* 提示高亮脉冲 */
+@keyframes hintPulse {
+    0% {
+        opacity: 0.3;
+        transform: scale(0.95);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+    100% {
+        opacity: 0.3;
+        transform: scale(0.95);
+    }
+}
+
+/* 禁手标记闪烁 */
+@keyframes forbiddenBlink {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.3;
+    }
+}
+
+/* 按钮点击反馈 */
+@keyframes buttonClick {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(0.95);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* 棋子放大缩小呼吸效果（可选） */
+@keyframes pieceBreath {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+/* 页面加载淡入 */
+@keyframes pageLoadFadeIn {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.app-container {
+    animation: pageLoadFadeIn 0.5s ease-out;
+}
+
+/* 按钮悬停效果增强 */
+button:hover:not(:disabled) {
+    animation: buttonHoverFloat 0.3s ease-in-out;
+}
+
+/* 模态框淡入 */
+@keyframes modalFadeIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* 模态框淡出 */
+@keyframes modalFadeOut {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+}
+
+.modal {
+    animation: modalFadeIn 0.3s ease-out;
+}
+
+.modal.closing {
+    animation: modalFadeOut 0.3s ease-in;
+}
+
+/* 成功提示弹跳 */
+@keyframes successBounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    25% {
+        transform: translateY(-10px);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+    75% {
+        transform: translateY(-7px);
+    }
+}
+
+/* 错误抖动 */
+@keyframes errorShake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-5px);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translateX(5px);
     }
 }

@@ -47,6 +47,11 @@ class InterfaceDemo {
         this.vcfBusy = false;
         this.vcfAutoMoveTimer = null;
 
+        // 提示系统状态
+        this.hintCooldown = false;
+        this.hintCooldownTimer = null;
+        this.hintCooldownDuration = 3000;
+
         // 绑定事件
         this.bindEvents();
 
@@ -86,6 +91,7 @@ class InterfaceDemo {
         this.canvas = document.getElementById('game-board');
         this.newGameButton = document.getElementById('new-game-button');
         this.undoButton = document.getElementById('undo-button');
+        this.hintButton = document.getElementById('hint-button');
         this.statusPanel = document.getElementById('status-panel');
         this.modeButtons = {
             PvP: document.getElementById('mode-pvp'),
@@ -150,6 +156,12 @@ class InterfaceDemo {
         this.undoButton.addEventListener('click', () => {
             this.handleUndo();
         });
+
+        if (this.hintButton) {
+            this.hintButton.addEventListener('click', () => {
+                this.showHint();
+            });
+        }
 
         if (this.modeButtons.PvP) {
             this.modeButtons.PvP.addEventListener('click', () => {
@@ -320,8 +332,12 @@ class InterfaceDemo {
             if (typeof this.renderer.clearForbiddenHighlight === 'function') {
                 this.renderer.clearForbiddenHighlight();
             }
+            if (typeof this.renderer.clearHintHighlight === 'function') {
+                this.renderer.clearHintHighlight();
+            }
             this.renderer.render();
         }
+        this.resetHintState();
         this.updateStatusDisplay();
         this.updateControlStates();
         GameUtils.showMessage('新游戏开始，黑方先手。', 'info');
@@ -585,6 +601,8 @@ class InterfaceDemo {
         if (this.difficultySelect) {
             this.difficultySelect.disabled = this.currentMode === 'PvP';
         }
+
+        this.updateHintButtonState();
     }
 
     handleSave() {
@@ -698,6 +716,121 @@ class InterfaceDemo {
     }
 
     /**
+     * 显示AI提示
+     */
+    showHint() {
+        if (this.game.gameOver) {
+            GameUtils.showMessage('游戏已结束', 'warning');
+            return;
+        }
+
+        if (this.isReplaying) {
+            GameUtils.showMessage('回放模式下无法使用提示', 'warning');
+            return;
+        }
+
+        if (this.isVCFMode) {
+            GameUtils.showMessage('VCF练习模式下请使用VCF提示按钮', 'warning');
+            return;
+        }
+
+        if (this.aiThinking) {
+            GameUtils.showMessage('AI思考中，请稍候...', 'warning');
+            return;
+        }
+
+        const gameState = this.game.getGameState();
+        if (this.currentMode === 'EvE') {
+            GameUtils.showMessage('AI演示模式下无法使用提示', 'warning');
+            return;
+        }
+
+        if (this.currentMode === 'PvE' && gameState.currentPlayer === 2) {
+            GameUtils.showMessage('当前是AI回合，稍候即可获得提示', 'warning');
+            return;
+        }
+
+        if (this.hintCooldown) {
+            GameUtils.showMessage('提示冷却中...', 'warning');
+            return;
+        }
+
+        // 使用AI计算最佳落子位置
+        const hintMove = this.game.getAIMove(this.aiDifficulty);
+        
+        if (!hintMove) {
+            GameUtils.showMessage('AI无法找到合适的落子位置', 'error');
+            return;
+        }
+
+        // 高亮提示位置
+        if (this.renderer && typeof this.renderer.highlightHintPosition === 'function') {
+            this.renderer.highlightHintPosition(hintMove.x, hintMove.y, 3000);
+        }
+
+        // 显示提示消息
+        GameUtils.showMessage(
+            `💡 提示：建议落子在 (${hintMove.x}, ${hintMove.y})`,
+            'info',
+            3000
+        );
+
+        // 启动冷却
+        this.startHintCooldown();
+    }
+
+    /**
+     * 启动提示冷却
+     */
+    startHintCooldown() {
+        this.hintCooldown = true;
+        this.updateHintButtonState();
+
+        this.hintCooldownTimer = setTimeout(() => {
+            this.hintCooldown = false;
+            this.updateHintButtonState();
+            this.hintCooldownTimer = null;
+        }, this.hintCooldownDuration);
+    }
+
+    /**
+     * 重置提示状态
+     */
+    resetHintState() {
+        if (this.hintCooldownTimer) {
+            clearTimeout(this.hintCooldownTimer);
+            this.hintCooldownTimer = null;
+        }
+        this.hintCooldown = false;
+        this.updateHintButtonState();
+    }
+
+    /**
+     * 更新提示按钮状态
+     */
+    updateHintButtonState() {
+        if (!this.hintButton) return;
+
+        const gameState = this.game.getGameState();
+        const disabled = this.isReplaying ||
+            this.isVCFMode ||
+            this.game.gameOver ||
+            this.aiThinking ||
+            this.hintCooldown ||
+            this.currentMode === 'EvE' ||
+            (this.currentMode === 'PvE' && gameState.currentPlayer === 2);
+
+        this.hintButton.disabled = disabled;
+
+        // 显示冷却中的文本
+        if (this.hintCooldown) {
+            this.hintButton.textContent = '⏳ 冷却中...';
+        } else {
+            this.hintButton.textContent = '💡 提示';
+        }
+    }
+
+    /**
      * 开始VCF练习
      */
     startVCFPuzzle() {
@@ -711,6 +844,7 @@ class InterfaceDemo {
 
         this.currentVCFPuzzle = puzzle;
         this.isVCFMode = true;
+        this.resetHintState();
         
         // 重置游戏
         this.game.reset();
