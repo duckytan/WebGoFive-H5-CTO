@@ -643,18 +643,20 @@ class GomokuGame {
     }
 
     /**
-     * 普通AI - 基于评分的贪心算法
+     * 普通AI - 基于评分的贪心算法（增强防守能力）
      * @returns {{x: number, y: number}|null}
      */
     getAIMoveNormal() {
         const player = this.currentPlayer;
         const opponent = player === 1 ? 2 : 1;
 
+        // 第一优先级：自己能赢就直接赢
         const myWin = this.findWinningMove(player);
         if (myWin) {
             return myWin;
         }
 
+        // 第二优先级：对手能赢就必须堵
         const opponentWin = this.findWinningMove(opponent);
         if (opponentWin) {
             return opponentWin;
@@ -668,10 +670,32 @@ class GomokuGame {
         let bestMove = null;
         let bestScore = -Infinity;
 
+        // 评估所有候选点
         for (const { x, y } of candidates) {
             const myScore = this.evaluatePosition(x, y, player);
             const oppScore = this.evaluatePosition(x, y, opponent);
-            const totalScore = myScore * 1.2 + oppScore;
+            
+            // 计算威胁等级
+            const threatLevel = this.calculateThreatLevel(oppScore);
+            
+            // 根据威胁等级动态调整权重
+            let attackWeight = 1.0;
+            let defenseWeight = 1.0;
+            
+            if (threatLevel >= 3) {
+                // 高威胁：活三或以上，防守权重提升到3倍
+                defenseWeight = 3.0;
+                attackWeight = 0.8;
+            } else if (threatLevel >= 2) {
+                // 中等威胁：冲四或活二，防守权重提升到2倍
+                defenseWeight = 2.0;
+                attackWeight = 0.9;
+            } else if (threatLevel >= 1) {
+                // 低威胁：普通进攻机会，略微增加防守权重
+                defenseWeight = 1.3;
+            }
+            
+            const totalScore = myScore * attackWeight + oppScore * defenseWeight;
 
             if (totalScore > bestScore) {
                 bestScore = totalScore;
@@ -680,6 +704,31 @@ class GomokuGame {
         }
 
         return bestMove;
+    }
+
+    /**
+     * 计算威胁等级（用于防守决策）
+     * @param {number} score - 位置评分
+     * @returns {number} 威胁等级 (0-5)
+     */
+    calculateThreatLevel(score) {
+        if (score >= 10000) {
+            // 活四：致命威胁
+            return 5;
+        } else if (score >= 1000) {
+            // 冲四：严重威胁
+            return 4;
+        } else if (score >= 500) {
+            // 活三：高威胁
+            return 3;
+        } else if (score >= 100) {
+            // 冲三：中等威胁
+            return 2;
+        } else if (score >= 50) {
+            // 活二：低威胁
+            return 1;
+        }
+        return 0;
     }
 }
 
