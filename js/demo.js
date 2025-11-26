@@ -62,6 +62,11 @@ class InterfaceDemo {
         this.hintCooldownTimer = null;
         this.hintCooldownDuration = 3000;
 
+        // 初始化UI控制器
+        if (typeof UIController !== 'undefined') {
+            this.uiController = new UIController();
+        }
+
         // 绑定事件
         this.bindEvents();
         
@@ -116,10 +121,8 @@ class InterfaceDemo {
             VCF_PRACTICE: document.getElementById('mode-vcf')
         };
         this.difficultySelect = document.getElementById('difficulty-select');
-        this.difficultyWrapper = document.querySelector('.difficulty-wrapper');
-        this.vcfLevelWrapper = document.querySelector('.vcf-level-wrapper');
+        this.difficultySection = document.querySelector('.difficulty-section');
         this.vcfLevelSelect = document.getElementById('vcf-level-select');
-        this.vcfActionsGroup = document.getElementById('vcf-actions');
         this.vcfStartButton = document.getElementById('vcf-start-button');
         this.vcfRestartButton = document.getElementById('vcf-restart-button');
         this.vcfHintButton = document.getElementById('vcf-hint-button');
@@ -435,37 +438,25 @@ class InterfaceDemo {
     updateVCFVisibility() {
         const isVCF = this.currentMode === 'VCF_PRACTICE';
         
-        // 显示/隐藏VCF相关UI
+        // VCF状态卡片始终在VCF Tab内可见，由Tab系统控制
+        if (this.vcfStatusCard) {
+            this.vcfStatusCard.style.display = isVCF ? 'block' : 'none';
+        }
+        
+        // 旧版UI兼容（如果存在）
         if (this.vcfLevelWrapper) {
             this.vcfLevelWrapper.style.display = isVCF ? 'flex' : 'none';
         }
         if (this.vcfActionsGroup) {
             this.vcfActionsGroup.style.display = isVCF ? 'flex' : 'none';
         }
-        if (this.vcfStatusCard) {
-            this.vcfStatusCard.style.display = isVCF ? 'block' : 'none';
-        }
         
-        // 隐藏/显示其他模式的UI
-        const saveLoadGroup = document.querySelector('.save-load-group');
-        const replayGroup = document.querySelector('.replay-group');
-        const replayControls = document.querySelector('.replay-controls');
-        const replayProgress = document.querySelector('.replay-progress');
-        
-        if (saveLoadGroup) {
-            saveLoadGroup.style.display = isVCF ? 'none' : 'flex';
-        }
-        if (replayGroup) {
-            replayGroup.style.display = isVCF ? 'none' : 'flex';
-        }
-        if (replayControls) {
-            replayControls.style.display = isVCF ? 'none' : 'flex';
-        }
-        if (replayProgress) {
-            replayProgress.style.display = isVCF ? 'none' : 'flex';
-        }
-        if (this.statusPanel) {
-            this.statusPanel.style.display = isVCF ? 'none' : 'block';
+        // 切换到VCF模式时自动切换到VCF Tab
+        if (isVCF && this.uiController) {
+            this.uiController.switchTab('vcf');
+        } else if (!isVCF && this.uiController) {
+            // 从VCF模式退出时，切换回游戏Tab
+            this.uiController.switchTab('game');
         }
     }
 
@@ -553,9 +544,15 @@ class InterfaceDemo {
         });
 
         const showDifficulty = this.currentMode !== 'VCF_PRACTICE' && (this.currentMode === 'PvE' || this.currentMode === 'EvE');
-        if (this.difficultyWrapper) {
-            this.difficultyWrapper.style.display = showDifficulty ? 'flex' : 'none';
+        
+        if (this.uiController) {
+            this.uiController.showDifficultySection(showDifficulty);
+            this.uiController.setDifficulty(this.aiDifficulty);
+            this.uiController.setVCFLevel(this.currentVCFLevel);
+        } else if (this.difficultySection) {
+            this.difficultySection.style.display = showDifficulty ? 'block' : 'none';
         }
+        
         if (this.difficultySelect) {
             this.difficultySelect.value = this.aiDifficulty;
         }
@@ -569,40 +566,40 @@ class InterfaceDemo {
      * 更新状态显示
      */
     updateStatusDisplay() {
-        if (!this.statusPanel) {
-            return;
-        }
-
         const gameState = this.game.getGameState();
         let currentPlayerText;
+        let blackStatus, whiteStatus;
         
         if (gameState.gameOver) {
             currentPlayerText = gameState.winner === 1 ? '黑方获胜' : '白方获胜';
+            blackStatus = gameState.winner === 1 ? '获胜 🎉' : '失败';
+            whiteStatus = gameState.winner === 2 ? '获胜 🎉' : '失败';
         } else if (this.aiThinking) {
             currentPlayerText = 'AI思考中...';
+            blackStatus = gameState.currentPlayer === 1 ? '思考中...' : '等待中';
+            whiteStatus = gameState.currentPlayer === 2 ? '思考中...' : '等待中';
         } else {
             currentPlayerText = gameState.currentPlayer === 1 ? '黑方回合' : '白方回合';
+            blackStatus = gameState.currentPlayer === 1 ? '行动中' : '等待中';
+            whiteStatus = gameState.currentPlayer === 2 ? '行动中' : '等待中';
+        }
+
+        if (this.uiController) {
+            this.uiController.updatePlayerStatus(1, blackStatus);
+            this.uiController.updatePlayerStatus(2, whiteStatus);
+            this.uiController.updateCurrentPlayer(gameState.currentPlayer);
+            this.uiController.updateModeText(this.modeDisplayText);
+            this.uiController.updateMoveCount(gameState.moveCount);
+        }
+
+        if (!this.statusPanel) {
+            return;
         }
 
         const moveCountText = `${gameState.moveCount} 步`;
 
         this.statusPanel.innerHTML = `
-            <div class="info-item">
-                <span class="info-label">当前阶段:</span>
-                <span class="info-value">Stage 4 - 存档回放 ✅</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">当前模式:</span>
-                <span class="info-value">${this.modeDisplayText}</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">当前状态:</span>
-                <span class="info-value ${gameState.gameOver ? 'game-over' : ''} ${this.aiThinking ? 'ai-thinking' : ''}">${currentPlayerText}</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">总步数:</span>
-                <span class="info-value">${moveCountText}</span>
-            </div>
+            <p>${currentPlayerText} | 已进行 ${moveCountText}</p>
         `;
     }
 
@@ -638,14 +635,26 @@ class InterfaceDemo {
             this.saveLoadManager.disableAutoSave();
             this.autoSaveEnabled = false;
             if (this.autoSaveButton) {
-                this.autoSaveButton.textContent = '自动保存：关闭';
+                this.autoSaveButton.classList.remove('active');
+                const textEl = this.autoSaveButton.querySelector('.toggle-text');
+                if (textEl) {
+                    textEl.textContent = '自动保存：关闭';
+                } else {
+                    this.autoSaveButton.textContent = '自动保存：关闭';
+                }
             }
             GameUtils.showMessage('自动保存已关闭', 'info', 1500);
         } else {
             this.saveLoadManager.enableAutoSave(60000);
             this.autoSaveEnabled = true;
             if (this.autoSaveButton) {
-                this.autoSaveButton.textContent = '自动保存：开启';
+                this.autoSaveButton.classList.add('active');
+                const textEl = this.autoSaveButton.querySelector('.toggle-text');
+                if (textEl) {
+                    textEl.textContent = '自动保存：开启';
+                } else {
+                    this.autoSaveButton.textContent = '自动保存：开启';
+                }
             }
             GameUtils.showMessage('自动保存已开启（每分钟）', 'success', 1500);
         }

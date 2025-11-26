@@ -27,135 +27,320 @@
         </div>
 
         <header class="app-header">
-            <h1>H5 五子棋</h1>
-            <p class="subtitle">纯原生JavaScript实现 · 模块化架构 · Canvas渲染</p>
+            <div class="header-content">
+                <h1>🎮 五子棋</h1>
+                <p class="subtitle">纯原生JavaScript · 模块化架构 · Canvas渲染</p>
+            </div>
         </header>
 
         <div class="main-layout">
+            <!-- 左侧：棋盘 + 状态显示 -->
             <div class="board-panel">
+                <!-- 游戏状态卡片 -->
+                <div class="game-status-card">
+                    <div class="status-header">
+                        <div class="player-indicator">
+                            <div class="player-info player-black">
+                                <div class="player-avatar">●</div>
+                                <div class="player-details">
+                                    <span class="player-label">黑方</span>
+                                    <span class="player-status" id="black-status">等待中</span>
+                                </div>
+                            </div>
+                            <div class="vs-divider">VS</div>
+                            <div class="player-info player-white">
+                                <div class="player-avatar">○</div>
+                                <div class="player-details">
+                                    <span class="player-label">白方</span>
+                                    <span class="player-status" id="white-status">等待中</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="game-info-bar">
+                        <div class="info-item">
+                            <span class="info-icon">🎯</span>
+                            <span class="info-text" id="current-mode">PvP模式</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-icon">📊</span>
+                            <span class="info-text" id="move-count">回合 0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 棋盘 -->
                 <section class="board-section">
                     <canvas id="game-board" width="0" height="0">
                         您的浏览器暂不支持Canvas，请升级或更换浏览器。
                     </canvas>
                 </section>
+
+                <!-- 状态消息 -->
+                <div class="status-message-area" id="status-panel">
+                    <p>正在初始化...</p>
+                </div>
             </div>
 
+            <!-- 右侧：控制面板 -->
             <section class="controls-section">
-                <div class="control-panel">
-                    <div class="control-card">
-                        <h3>🎮 游戏模式</h3>
-                        <div class="control-group mode-group">
-                            <button id="mode-pvp" type="button" class="mode-button active">PvP</button>
-                            <button id="mode-pve" type="button" class="mode-button">PvE</button>
-                            <button id="mode-eve" type="button" class="mode-button">EvE</button>
-                            <button id="mode-vcf" type="button" class="mode-button">VCF练习</button>
+                <!-- Tab导航 -->
+                <div class="control-tabs">
+                    <button class="tab-button active" data-tab="game">
+                        <span class="tab-icon">🎮</span>
+                        <span class="tab-label">游戏</span>
+                    </button>
+                    <button class="tab-button" data-tab="save">
+                        <span class="tab-icon">💾</span>
+                        <span class="tab-label">存档</span>
+                    </button>
+                    <button class="tab-button" data-tab="replay">
+                        <span class="tab-icon">📹</span>
+                        <span class="tab-label">回放</span>
+                    </button>
+                    <button class="tab-button" data-tab="vcf">
+                        <span class="tab-icon">🎯</span>
+                        <span class="tab-label">练习</span>
+                    </button>
+                </div>
+
+                <!-- Tab内容 -->
+                <div class="tab-content-container">
+                    <!-- 游戏控制Tab -->
+                    <div class="tab-content active" id="tab-game">
+                        <div class="control-section">
+                            <h3 class="section-title">游戏模式</h3>
+                            <div class="mode-selector">
+                                <button id="mode-pvp" type="button" class="mode-card active">
+                                    <span class="mode-icon">👥</span>
+                                    <span class="mode-name">PvP</span>
+                                    <span class="mode-desc">玩家对战</span>
+                                </button>
+                                <button id="mode-pve" type="button" class="mode-card">
+                                    <span class="mode-icon">🤖</span>
+                                    <span class="mode-name">PvE</span>
+                                    <span class="mode-desc">人机对战</span>
+                                </button>
+                                <button id="mode-eve" type="button" class="mode-card">
+                                    <span class="mode-icon">⚙️</span>
+                                    <span class="mode-name">EvE</span>
+                                    <span class="mode-desc">AI演示</span>
+                                </button>
+                                <button id="mode-vcf" type="button" class="mode-card">
+                                    <span class="mode-icon">🎓</span>
+                                    <span class="mode-name">VCF</span>
+                                    <span class="mode-desc">练习模式</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="control-section difficulty-section" style="display: none;">
+                            <h3 class="section-title">AI难度</h3>
+                            <div class="difficulty-grid">
+                                <button type="button" class="difficulty-option" data-difficulty="BEGINNER">
+                                    <span class="difficulty-emoji">😊</span>
+                                    <span class="difficulty-name">新手</span>
+                                </button>
+                                <button type="button" class="difficulty-option active" data-difficulty="NORMAL">
+                                    <span class="difficulty-emoji">🙂</span>
+                                    <span class="difficulty-name">普通</span>
+                                </button>
+                                <button type="button" class="difficulty-option" data-difficulty="HARD">
+                                    <span class="difficulty-emoji">😤</span>
+                                    <span class="difficulty-name">困难</span>
+                                </button>
+                                <button type="button" class="difficulty-option" data-difficulty="HELL">
+                                    <span class="difficulty-emoji">😈</span>
+                                    <span class="difficulty-name">地狱</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="control-section">
+                            <h3 class="section-title">快速操作</h3>
+                            <div class="action-buttons">
+                                <button id="new-game-button" type="button" class="action-btn primary">
+                                    <span class="btn-icon">🆕</span>
+                                    <span class="btn-text">新游戏</span>
+                                </button>
+                                <button id="undo-button" type="button" class="action-btn secondary" disabled>
+                                    <span class="btn-icon">↩️</span>
+                                    <span class="btn-text">悔棋</span>
+                                </button>
+                                <button id="hint-button" type="button" class="action-btn accent" disabled>
+                                    <span class="btn-icon">💡</span>
+                                    <span class="btn-text">提示</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <div class="control-group difficulty-wrapper">
-                        <label for="difficulty-select">AI难度</label>
-                        <select id="difficulty-select">
-                            <option value="BEGINNER">新手</option>
-                            <option value="NORMAL" selected>普通</option>
-                            <option value="HARD">困难</option>
-                            <option value="HELL">地狱</option>
-                        </select>
-                    </div>
-            <div class="control-group vcf-level-wrapper" style="display: none;">
-                <label for="vcf-level-select">VCF难度</label>
-                <select id="vcf-level-select">
-                    <option value="1" selected>入门 (Level 1)</option>
-                    <option value="2">初级 (Level 2)</option>
-                    <option value="3">中级 (Level 3)</option>
-                    <option value="4">高级 (Level 4)</option>
-                </select>
-            </div>
-                    <div class="control-card">
-                        <h3>🎯 主操作</h3>
-                        <div class="control-group primary-actions">
-                            <button id="new-game-button" type="button">
-                                🆕 新游戏
+
+                    <!-- 存档管理Tab -->
+                    <div class="tab-content" id="tab-save">
+                        <div class="control-section">
+                            <h3 class="section-title">存档操作</h3>
+                            <div class="action-buttons">
+                                <button id="save-button" type="button" class="action-btn success">
+                                    <span class="btn-icon">💾</span>
+                                    <span class="btn-text">保存棋局</span>
+                                </button>
+                                <button id="load-button" type="button" class="action-btn info">
+                                    <span class="btn-icon">📂</span>
+                                    <span class="btn-text">加载棋局</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="control-section">
+                            <h3 class="section-title">自动保存</h3>
+                            <button id="auto-save-button" type="button" class="toggle-btn">
+                                <span class="toggle-icon">🔄</span>
+                                <span class="toggle-text">自动保存：关闭</span>
                             </button>
-                            <button id="undo-button" type="button" disabled>
-                                ↩️ 悔棋
-                            </button>
-                            <button id="hint-button" type="button" disabled>
-                                💡 提示
-                            </button>
+                            <p class="section-hint">开启后每次落子自动保存至本地</p>
                         </div>
                     </div>
-                    <div class="control-card">
-                        <h3>💾 存档管理</h3>
-                        <div class="control-group save-load-group">
-                            <button id="save-button" type="button">保存棋局</button>
-                            <button id="load-button" type="button">加载棋局</button>
-                            <button id="auto-save-button" type="button">自动保存：关闭</button>
+
+                    <!-- 回放Tab -->
+                    <div class="tab-content" id="tab-replay">
+                        <div class="control-section">
+                            <h3 class="section-title">回放控制</h3>
+                            <div class="action-buttons">
+                                <button id="replay-current-button" type="button" class="action-btn info">
+                                    <span class="btn-icon">📹</span>
+                                    <span class="btn-text">回放当前</span>
+                                </button>
+                                <button id="replay-loaded-button" type="button" class="action-btn info">
+                                    <span class="btn-icon">📂</span>
+                                    <span class="btn-text">回放载入</span>
+                                </button>
+                                <button id="replay-stop-button" type="button" class="action-btn danger">
+                                    <span class="btn-icon">⏹️</span>
+                                    <span class="btn-text">退出回放</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="control-section">
+                            <h3 class="section-title">播放控制</h3>
+                            <div class="replay-toolbar">
+                                <button id="replay-step-backward-button" type="button" class="replay-control-btn">
+                                    <span>⏮️</span>
+                                </button>
+                                <button id="replay-play-button" type="button" class="replay-control-btn primary">
+                                    <span>▶️</span>
+                                </button>
+                                <button id="replay-pause-button" type="button" class="replay-control-btn">
+                                    <span>⏸️</span>
+                                </button>
+                                <button id="replay-step-forward-button" type="button" class="replay-control-btn">
+                                    <span>⏭️</span>
+                                </button>
+                            </div>
+                            
+                            <div class="replay-progress-container">
+                                <input type="range" id="replay-progress" min="0" max="100" value="0" class="replay-slider">
+                                <div class="replay-info">
+                                    <span id="replay-progress-label" class="replay-step-text">0 / 0</span>
+                                    <select id="replay-speed-select" class="replay-speed-select">
+                                        <option value="0.5">0.5x</option>
+                                        <option value="1" selected>1x</option>
+                                        <option value="2">2x</option>
+                                        <option value="3">3x</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                     </div>
-            <div class="control-group replay-group">
-                <button id="replay-current-button" type="button">回放当前</button>
-                <button id="replay-loaded-button" type="button">回放载入</button>
-                <button id="replay-stop-button" type="button">退出回放</button>
-            </div>
-            <div class="control-group replay-controls">
-                <button id="replay-play-button" type="button">播放</button>
-                <button id="replay-pause-button" type="button">暂停</button>
-                <button id="replay-step-backward-button" type="button">上一步</button>
-                <button id="replay-step-forward-button" type="button">下一步</button>
-                <label class="replay-speed-label">
-                    速度
-                    <select id="replay-speed-select">
-                        <option value="0.5">0.5x</option>
-                        <option value="1" selected>1x</option>
-                        <option value="2">2x</option>
-                        <option value="3">3x</option>
-                    </select>
-                </label>
-            </div>
-            <div class="replay-progress">
-                <input type="range" id="replay-progress" min="0" max="100" value="0">
-                <span id="replay-progress-label">0 / 0</span>
-            </div>
-            <div class="control-group vcf-actions" id="vcf-actions" style="display: none;">
-                <button id="vcf-start-button" type="button">开始练习</button>
-                <button id="vcf-restart-button" type="button" disabled>重新开始</button>
-                <button id="vcf-hint-button" type="button" disabled>查看提示</button>
-                <button id="vcf-solution-button" type="button" disabled>查看解法</button>
-            </div>
-            <div class="vcf-status-card" id="vcf-status-card" style="display: none;">
-                <div class="vcf-status-header">
-                    <h3 id="vcf-puzzle-name">VCF练习未开始</h3>
-                    <span class="vcf-badge" id="vcf-puzzle-level">Level 1</span>
-                </div>
-                <p class="vcf-description" id="vcf-puzzle-description">选择难度并点击“开始练习”</p>
-                <div class="vcf-metrics">
-                    <div>
-                        <span class="metric-label">当前进度</span>
-                        <span class="metric-value" id="vcf-progress-text">0 / 0</span>
+
+                    <!-- VCF练习Tab -->
+                    <div class="tab-content" id="tab-vcf">
+                        <div class="control-section">
+                            <h3 class="section-title">难度选择</h3>
+                            <div class="vcf-level-grid">
+                                <button type="button" class="vcf-level-option active" data-level="1">
+                                    <span class="level-badge">Lv.1</span>
+                                    <span class="level-name">入门</span>
+                                    <span class="level-desc">2-3步</span>
+                                </button>
+                                <button type="button" class="vcf-level-option" data-level="2">
+                                    <span class="level-badge">Lv.2</span>
+                                    <span class="level-name">初级</span>
+                                    <span class="level-desc">3-4步</span>
+                                </button>
+                                <button type="button" class="vcf-level-option" data-level="3">
+                                    <span class="level-badge">Lv.3</span>
+                                    <span class="level-name">中级</span>
+                                    <span class="level-desc">5-7步</span>
+                                </button>
+                                <button type="button" class="vcf-level-option" data-level="4">
+                                    <span class="level-badge">Lv.4</span>
+                                    <span class="level-name">高级</span>
+                                    <span class="level-desc">8-12步</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="control-section">
+                            <h3 class="section-title">练习操作</h3>
+                            <div class="action-buttons">
+                                <button id="vcf-start-button" type="button" class="action-btn primary">
+                                    <span class="btn-icon">▶️</span>
+                                    <span class="btn-text">开始练习</span>
+                                </button>
+                                <button id="vcf-restart-button" type="button" class="action-btn secondary" disabled>
+                                    <span class="btn-icon">🔄</span>
+                                    <span class="btn-text">重新开始</span>
+                                </button>
+                            </div>
+                            <div class="action-buttons">
+                                <button id="vcf-hint-button" type="button" class="action-btn accent" disabled>
+                                    <span class="btn-icon">💡</span>
+                                    <span class="btn-text">查看提示</span>
+                                </button>
+                                <button id="vcf-solution-button" type="button" class="action-btn info" disabled>
+                                    <span class="btn-icon">📖</span>
+                                    <span class="btn-text">查看解法</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="vcf-status-card" id="vcf-status-card" style="display: none;">
+                            <div class="vcf-header">
+                                <h4 id="vcf-puzzle-name">VCF练习</h4>
+                                <span class="vcf-level-badge" id="vcf-puzzle-level">Level 1</span>
+                            </div>
+                            <p class="vcf-description" id="vcf-puzzle-description">选择难度并点击"开始练习"</p>
+                            
+                            <div class="vcf-progress-stats">
+                                <div class="stat-item">
+                                    <span class="stat-label">当前进度</span>
+                                    <span class="stat-value" id="vcf-progress-text">0 / 0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">累计完成</span>
+                                    <span class="stat-value" id="vcf-overall-progress">0 / 40</span>
+                                </div>
+                            </div>
+
+                            <div class="vcf-hint-section">
+                                <div class="hint-box next-step">
+                                    <span class="hint-label">📌 下一关键点</span>
+                                    <p id="vcf-next-step-text">-</p>
+                                </div>
+                                <div class="hint-box hint-info">
+                                    <span class="hint-label">💡 提示</span>
+                                    <p id="vcf-hint-text">-</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <span class="metric-label">累计完成</span>
-                        <span class="metric-value" id="vcf-overall-progress">0 / 40 (0%)</span>
-                    </div>
-                </div>
-                <div class="vcf-next-step">
-                    <span class="hint-label">下一关键点</span>
-                    <p id="vcf-next-step-text">-</p>
-                </div>
-                <div class="vcf-hint-box">
-                    <span class="hint-label">提示</span>
-                    <p id="vcf-hint-text">-</p>
-                </div>
-            </div>
-            <div class="status-panel" id="status-panel">
-                <p>正在初始化...</p>
-            </div>
                 </div>
             </section>
         </div>
 
         <footer class="app-footer">
-            <p>模块加载顺序: utils → game-core → ai-advanced → save-load → replay → vcf-practice → board-renderer → demo</p>
-            <p class="version-info">版本: v7.0.0 (Stage 7 完成 - 测试部署)</p>
+            <p class="version-info">H5 五子棋 v7.0.0</p>
         </footer>
     </main>
 
@@ -170,28 +355,28 @@
                 <div class="setting-item">
                     <label class="setting-label">
                         <input type="checkbox" id="setting-show-coords" class="setting-checkbox">
-                        显示坐标
+                        <span class="setting-title">显示坐标</span>
                     </label>
                     <p class="setting-description">在棋盘上显示坐标标识</p>
                 </div>
                 <div class="setting-item">
                     <label class="setting-label">
                         <input type="checkbox" id="setting-animations" class="setting-checkbox" checked>
-                        动画效果
+                        <span class="setting-title">动画效果</span>
                     </label>
                     <p class="setting-description">开启界面动画效果</p>
                 </div>
                 <div class="setting-item">
                     <label class="setting-label">
                         <input type="checkbox" id="setting-sound" class="setting-checkbox">
-                        音效（占位）
+                        <span class="setting-title">音效（占位）</span>
                     </label>
                     <p class="setting-description">落子音效（暂未实现）</p>
                 </div>
                 <div class="setting-item">
                     <label class="setting-label">
                         <input type="checkbox" id="setting-auto-hint" class="setting-checkbox" checked>
-                        自动提示禁手
+                        <span class="setting-title">自动提示禁手</span>
                     </label>
                     <p class="setting-description">在可能的禁手位置显示红色标记</p>
                 </div>
@@ -285,6 +470,20 @@
         </div>
     </div>
 
+    <!-- 兼容旧版的隐藏select -->
+    <select id="difficulty-select" style="display: none;">
+        <option value="BEGINNER">新手</option>
+        <option value="NORMAL" selected>普通</option>
+        <option value="HARD">困难</option>
+        <option value="HELL">地狱</option>
+    </select>
+    <select id="vcf-level-select" style="display: none;">
+        <option value="1" selected>入门 (Level 1)</option>
+        <option value="2">初级 (Level 2)</option>
+        <option value="3">中级 (Level 3)</option>
+        <option value="4">高级 (Level 4)</option>
+    </select>
+
     <script src="js/utils.js"></script>
     <script src="js/game-core.js"></script>
     <script src="js/ai-advanced.js"></script>
@@ -292,6 +491,5 @@
     <script src="js/game-save-load.js"></script>
     <script src="js/game-replay.js"></script>
     <script src="js/vcf-practice.js"></script>
+    <script src="js/ui-controller.js"></script>
     <script src="js/demo.js"></script>
-</body>
-</html>
