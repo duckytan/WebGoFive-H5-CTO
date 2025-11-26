@@ -17,6 +17,7 @@ class SimpleBoardRenderer {
         this.ctx = this.canvas.getContext('2d');
         this.game = gameInstance;
         this.onMove = typeof options.onMove === 'function' ? options.onMove : null;
+        this.soundManager = options.soundManager || null;
 
         this.BOARD_SIZE = this.game.BOARD_SIZE;
         this.PADDING = options.padding ?? 40;
@@ -400,6 +401,15 @@ class SimpleBoardRenderer {
         if (!result.success) {
             if (result.code === 'FORBIDDEN_MOVE') {
                 this.highlightForbiddenPosition(x, y, result);
+                // 播放禁手警告音效
+                if (this.soundManager) {
+                    this.soundManager.playForbiddenSound();
+                }
+            } else {
+                // 播放错误音效
+                if (this.soundManager) {
+                    this.soundManager.playErrorSound();
+                }
             }
             GameUtils.showMessage(result.error, 'error');
             return result;
