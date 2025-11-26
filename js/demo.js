@@ -1,7 +1,7 @@
 /**
  * InterfaceDemo - UI控制器
  * 负责初始化应用、绑定事件、协调各模块
- * @version 5.0.0
+ * @version 6.0.0
  */
 
 class InterfaceDemo {
@@ -21,6 +21,9 @@ class InterfaceDemo {
 
         // 获取DOM元素
         this.initDOMElements();
+
+        // 初始化音效管理器（必须在渲染器之前初始化）
+        this.soundManager = new SoundManager();
 
         // 初始化游戏实例
         this.game = new GomokuGame({ boardSize: 15 });
@@ -57,9 +60,6 @@ class InterfaceDemo {
         this.isVCFMode = false;
         this.vcfBusy = false;
         this.vcfAutoMoveTimer = null;
-
-        // 初始化音效管理器
-        this.soundManager = new SoundManager();
 
         // 提示系统状态
         this.hintCooldown = false;
@@ -1400,10 +1400,10 @@ class InterfaceDemo {
 }
 
 const DEMO_MODULE_INFO = {
-    name: 'InterfaceDemo',
-    version: '8.0.0',
-    dependencies: ['GameUtils', 'SoundManager', 'GomokuGame', 'SimpleBoardRenderer', 'GameSaveLoad', 'GameReplay', 'VCFPracticeManager'],
-    description: 'UI控制器'
+name: 'InterfaceDemo',
+version: '8.0.1',
+dependencies: ['GameUtils', 'SoundManager', 'GomokuGame', 'SimpleBoardRenderer', 'GameSaveLoad', 'GameReplay', 'VCFPracticeManager'],
+description: 'UI控制器'
 };
 
 InterfaceDemo.__moduleInfo = DEMO_MODULE_INFO;

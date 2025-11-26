@@ -1,7 +1,7 @@
 /**
  * SimpleBoardRenderer - Canvas棋盘渲染器
  * 负责棋盘绘制、鼠标交互、Canvas渲染优化
- * @version 1.0.0
+ * @version 2.2.0
  */
 
 class SimpleBoardRenderer {
@@ -487,10 +487,10 @@ class SimpleBoardRenderer {
 }
 
 const RENDERER_MODULE_INFO = {
-    name: 'SimpleBoardRenderer',
-    version: '2.1.0',
-    dependencies: ['GomokuGame'],
-    description: 'Canvas渲染器'
+name: 'SimpleBoardRenderer',
+version: '2.2.0',
+dependencies: ['GomokuGame'],
+description: 'Canvas渲染器'
 };
 
 SimpleBoardRenderer.__moduleInfo = RENDERER_MODULE_INFO;
