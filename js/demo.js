@@ -27,7 +27,8 @@ class InterfaceDemo {
 
         // 初始化渲染器
         this.renderer = new SimpleBoardRenderer(this.canvas, this.game, {
-            onMove: (result) => this.handleMoveResult(result)
+            onMove: (result) => this.handleMoveResult(result),
+            soundManager: this.soundManager
         });
 
         // 初始化存档管理
@@ -57,6 +58,9 @@ class InterfaceDemo {
         this.vcfBusy = false;
         this.vcfAutoMoveTimer = null;
 
+        // 初始化音效管理器
+        this.soundManager = new SoundManager();
+
         // 提示系统状态
         this.hintCooldown = false;
         this.hintCooldownTimer = null;
@@ -72,6 +76,9 @@ class InterfaceDemo {
         
         // 初始化模态框
         this.initModals();
+
+        // 准备音频解锁（首次用户交互）
+        this.setupAudioUnlock();
         
         // 应用设置
         this.applySettings();
@@ -88,7 +95,7 @@ class InterfaceDemo {
      * 检查必需依赖
      */
     checkDependencies() {
-        const required = ['GameUtils', 'GomokuGame', 'SimpleBoardRenderer', 'GameSaveLoad', 'GameReplay', 'VCFPracticeManager'];
+        const required = ['GameUtils', 'SoundManager', 'GomokuGame', 'SimpleBoardRenderer', 'GameSaveLoad', 'GameReplay', 'VCFPracticeManager'];
         const missing = [];
 
         required.forEach(dep => {
@@ -315,6 +322,11 @@ class InterfaceDemo {
             return;
         }
 
+        // 播放落子音效
+        if (this.soundManager && result.success && !result.data.isForbidden) {
+            this.soundManager.playPieceSound();
+        }
+
         if (this.isReplaying) {
             this.updateReplayUI(this.getReplayStateSnapshot());
             return;
@@ -326,6 +338,10 @@ class InterfaceDemo {
         if (result.data.gameOver) {
             const winnerText = result.data.winner === 1 ? '黑方' : '白方';
             GameUtils.showMessage(`🎉 ${winnerText}获胜！`, 'success', 4000);
+            // 播放胜利音效
+            if (this.soundManager) {
+                this.soundManager.playWinSound();
+            }
             if (this.renderer) {
                 this.renderer.setInteractive(false);
             }
@@ -343,6 +359,9 @@ class InterfaceDemo {
      * 开始新游戏
      */
     startNewGame() {
+        if (this.soundManager) {
+            this.soundManager.playClickSound();
+        }
         this.stopReplayIfNeeded();
         this.game.reset();
         if (this.renderer) {
@@ -690,18 +709,34 @@ class InterfaceDemo {
 
     handleReplayPlay() {
         this.replayManager.play();
+        // 播放点击音效
+        if (this.soundManager) {
+            this.soundManager.playClickSound();
+        }
     }
 
     handleReplayPause() {
         this.replayManager.pause();
+        // 播放点击音效
+        if (this.soundManager) {
+            this.soundManager.playClickSound();
+        }
     }
 
     handleReplayStepBackward() {
         this.replayManager.stepBackward();
+        // 播放回放音效
+        if (this.soundManager) {
+            this.soundManager.playReplaySound();
+        }
     }
 
     handleReplayStepForward() {
         this.replayManager.stepForward();
+        // 播放回放音效
+        if (this.soundManager) {
+            this.soundManager.playReplaySound();
+        }
     }
 
     updateReplayUI(state) {
@@ -786,6 +821,11 @@ class InterfaceDemo {
         if (!hintMove) {
             GameUtils.showMessage('AI无法找到合适的落子位置', 'error');
             return;
+        }
+
+        // 播放提示音效
+        if (this.soundManager) {
+            this.soundManager.playHintSound();
         }
 
         // 高亮提示位置
@@ -933,6 +973,11 @@ class InterfaceDemo {
             return;
         }
         
+        // 播放提示音效
+        if (this.soundManager) {
+            this.soundManager.playHintSound();
+        }
+        
         const hint = this.vcfManager.getHint();
         const correctMove = this.vcfManager.getCurrentCorrectMove();
         
@@ -987,6 +1032,11 @@ class InterfaceDemo {
                 this.renderer.render();
                 GameUtils.showMessage(`✓ ${result.message}`, 'success', 1500);
 
+                // 播放落子音效
+                if (this.soundManager) {
+                    this.soundManager.playPieceSound();
+                }
+
                 if (result.isCompleted) {
                     // 题目完成
                     this.handleVCFPuzzleComplete();
@@ -1003,6 +1053,10 @@ class InterfaceDemo {
             }
         } else {
             // 走法错误
+            // 播放错误音效
+            if (this.soundManager) {
+                this.soundManager.playErrorSound();
+            }
             const correctMove = result.correctMove;
             GameUtils.showMessage(
                 `✗ ${result.message}\n正确位置: (${correctMove.x}, ${correctMove.y})\n提示: ${result.hint}`,
@@ -1020,6 +1074,10 @@ class InterfaceDemo {
 
         const result = this.game.placePiece(move.x, move.y);
         if (result.success) {
+            // 播放落子音效
+            if (this.soundManager) {
+                this.soundManager.playPieceSound();
+            }
             this.renderer.render();
             GameUtils.showMessage(`AI: ${move.description || '防守'}`, 'info', 1500);
             this.updateVCFUI();
@@ -1031,6 +1089,11 @@ class InterfaceDemo {
      */
     handleVCFPuzzleComplete() {
         this.renderer.setInteractive(false);
+        
+        // 播放胜利音效
+        if (this.soundManager) {
+            this.soundManager.playWinSound();
+        }
         
         const progress = this.vcfManager.getProgress();
         const levelProgress = progress.byLevel[this.currentVCFLevel];
@@ -1210,6 +1273,15 @@ class InterfaceDemo {
         } else {
             document.body.classList.remove('no-animations');
         }
+        
+        // 应用音效设置
+        if (this.soundManager) {
+            if (this.settings.soundEnabled) {
+                this.soundManager.enable();
+            } else {
+                this.soundManager.disable();
+            }
+        }
     }
 
     /**
@@ -1295,12 +1367,42 @@ class InterfaceDemo {
             }, 300);
         }
     }
+
+    /**
+     * 设置音频解锁（首次用户交互时初始化/恢复AudioContext）
+     */
+    setupAudioUnlock() {
+        if (!this.soundManager || typeof document === 'undefined') {
+            return;
+        }
+
+        const unlockEvents = ['pointerdown', 'touchstart', 'keydown'];
+        const unlockAudio = () => {
+            this.soundManager.init();
+            if (typeof this.soundManager.resumeContext === 'function') {
+                this.soundManager.resumeContext();
+            } else if (this.soundManager.audioContext && this.soundManager.audioContext.state === 'suspended') {
+                this.soundManager.audioContext.resume().catch(() => {});
+            }
+            if (this.settings.soundEnabled) {
+                this.soundManager.enable();
+            }
+            unlockEvents.forEach(eventName => {
+                document.removeEventListener(eventName, unlockAudio, false);
+            });
+        };
+
+        unlockEvents.forEach(eventName => {
+            const options = eventName === 'touchstart' ? { passive: true } : { passive: true };
+            document.addEventListener(eventName, unlockAudio, options);
+        });
+    }
 }
 
 const DEMO_MODULE_INFO = {
     name: 'InterfaceDemo',
-    version: '6.0.0',
-    dependencies: ['GameUtils', 'GomokuGame', 'SimpleBoardRenderer', 'GameSaveLoad', 'GameReplay', 'VCFPracticeManager'],
+    version: '8.0.0',
+    dependencies: ['GameUtils', 'SoundManager', 'GomokuGame', 'SimpleBoardRenderer', 'GameSaveLoad', 'GameReplay', 'VCFPracticeManager'],
     description: 'UI控制器'
 };
 
