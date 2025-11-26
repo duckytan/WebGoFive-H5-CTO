@@ -153,6 +153,7 @@ renderer.render(); // 渲染棋盘
 - [开发计划](./DEVELOPMENT_PLAN.md) - 详细的开发任务和时间规划
 - [验收方案](./ACCEPTANCE_PLAN.md) - 分阶段验收标准和流程
 - [进度日志](./PROGRESS_LOG.md) - 实时更新的开发进度
+- [最终状态报告](./FINAL_STATUS_REPORT.md) - 阶段7完成后的总体总结
 - [阶段0验收报告](./STAGE0_ACCEPTANCE.md) - 环境准备验收结果
 - [阶段1验收报告](./STAGE1_ACCEPTANCE.md) - 核心功能验收结果
 
