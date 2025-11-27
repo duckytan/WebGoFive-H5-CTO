@@ -243,6 +243,14 @@ game-save-load.js → game-replay.js → vcf-practice.js → ui-controller.js �
 
 > 完整更新历史请查看 [CHANGELOG.md](./CHANGELOG.md)
 
+### v8.0.3 (2025-01-26) - 代码质量提升
+**代码规范化，版本号统一，AI模块重构。**
+- 重构 `ai-advanced.js`：明确其作为桥接器的角色，移除"未来实现"标记
+- 统一 `game-core.js` 版本号：代码注释与MODULE_INFO保持一致
+- 完善代码注释：AI模块说明实际实现位置
+- 更新所有版本号到 v8.0.3（VERSION/index.html/README）
+- 代码更清晰、架构更透明
+
 ### v8.0.2 (2025-01-26) - 文档完善
 **任务清单完善，新增VERSION文件，项目文档100%同步。**
 - 更新 `TASK_CHECKLIST.md`：所有任务项勾选完成（14项）
@@ -358,7 +366,7 @@ game-save-load.js → game-replay.js → vcf-practice.js → ui-controller.js �
 
 ---
 
-**当前版本**: v8.0.2 (Documentation Polished)  
+**当前版本**: v8.0.3 (Code Quality Polished)  
 **最后更新**: 2025-01-26  
 **开发团队**: AI Development Team  
 **项目状态**: 🎉 100%完成，Bug已修复，完全稳定，生产就绪 🎉
