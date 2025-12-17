@@ -4,10 +4,13 @@
  */
 
 class UIController {
-    constructor() {
+    constructor(interfaceDemoInstance = null) {
         this.currentTab = 'game';
         this.currentDifficulty = 'NORMAL';
         this.currentVCFLevel = 1;
+        
+        // 保存InterfaceDemo实例引用
+        this.interfaceDemo = interfaceDemoInstance;
         
         this.initTabSystem();
         this.initModeSelector();
@@ -51,10 +54,23 @@ class UIController {
         const modeCards = document.querySelectorAll('.mode-card');
         modeCards.forEach(card => {
             card.addEventListener('click', () => {
-                modeCards.forEach(c => c.classList.remove('active'));
-                card.classList.add('active');
+                const mode = card.getAttribute('data-mode') || this.getModeFromCardId(card.id);
+                this.setMode(mode);
             });
         });
+    }
+
+    /**
+     * 从卡片ID获取模式
+     */
+    getModeFromCardId(cardId) {
+        const modeMap = {
+            'mode-pvp': 'PvP',
+            'mode-pve': 'PvE', 
+            'mode-eve': 'EvE',
+            'mode-vcf': 'VCF_PRACTICE'
+        };
+        return modeMap[cardId] || 'PvP';
     }
 
     initDifficultySelector() {
@@ -120,18 +136,6 @@ class UIController {
         }
     }
 
-    setDifficulty(difficulty) {
-        this.currentDifficulty = difficulty;
-        const difficultyOptions = document.querySelectorAll('.difficulty-option');
-        difficultyOptions.forEach(opt => {
-            if (opt.getAttribute('data-difficulty') === difficulty) {
-                opt.classList.add('active');
-            } else {
-                opt.classList.remove('active');
-            }
-        });
-    }
-
     setVCFLevel(level) {
         this.currentVCFLevel = parseInt(level, 10);
         const levelOptions = document.querySelectorAll('.vcf-level-option');
@@ -142,6 +146,50 @@ class UIController {
                 opt.classList.remove('active');
             }
         });
+    }
+
+    /**
+     * 设置模式并同步到InterfaceDemo
+     */
+    setMode(mode) {
+        this.currentMode = mode;
+        const modeCards = document.querySelectorAll('.mode-card');
+        modeCards.forEach(card => {
+            const cardMode = this.getModeFromCardId(card.id);
+            if (cardMode === mode) {
+                card.classList.add('active');
+            } else {
+                card.classList.remove('active');
+            }
+        });
+
+        // 同步到InterfaceDemo
+        if (this.interfaceDemo && typeof this.interfaceDemo.switchMode === 'function') {
+            this.interfaceDemo.switchMode(mode);
+        }
+
+        // 显示/隐藏难度选择
+        this.showDifficultySection(mode === 'PvE' || mode === 'EvE');
+    }
+
+    /**
+     * 设置难度并同步到InterfaceDemo
+     */
+    setDifficulty(difficulty) {
+        this.currentDifficulty = difficulty;
+        const difficultyOptions = document.querySelectorAll('.difficulty-option');
+        difficultyOptions.forEach(opt => {
+            if (opt.getAttribute('data-difficulty') === difficulty) {
+                opt.classList.add('active');
+            } else {
+                opt.classList.remove('active');
+            }
+        });
+
+        // 同步到InterfaceDemo
+        if (this.interfaceDemo && typeof this.interfaceDemo.updateDifficulty === 'function') {
+            this.interfaceDemo.updateDifficulty(difficulty);
+        }
     }
 
     updatePlayerStatus(player, status) {
