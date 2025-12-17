@@ -529,7 +529,7 @@ class GomokuGame {
     }
 
     /**
-     * 评估某位置的分数
+     * 评估某位置的分数（全新AI算法）
      * @param {number} x - X坐标
      * @param {number} y - Y坐标
      * @param {number} player - 玩家
@@ -543,12 +543,14 @@ class GomokuGame {
         this.board[y][x] = player;
         let score = 0;
 
+        // 必胜检查
         const winCheck = this.checkWin(x, y);
         if (winCheck.hasWon) {
             this.board[y][x] = 0;
             return 100000;
         }
 
+        // 禁手检查（仅对黑棋）
         if (player === 1) {
             const forbiddenCheck = this.checkForbidden(x, y);
             if (forbiddenCheck.isForbidden) {
@@ -557,6 +559,277 @@ class GomokuGame {
             }
         }
 
+        // 位置价值（中心更重要）
+        const positionValue = this.calculatePositionValue(x, y);
+        score += positionValue;
+
+        // 进攻性评分（自己的棋型）
+        const attackScore = this.calculateAttackScore(x, y, player);
+        
+        // 防守性评分（对手的威胁）
+        const opponent = player === 1 ? 2 : 1;
+        const defenseScore = this.calculateDefenseScore(x, y, opponent);
+
+        // 综合评分：进攻优先，但防守必须
+        score += attackScore + defenseScore * 1.2;
+
+        // 特殊棋型奖励
+        score += this.calculateSpecialPatternBonus(x, y, player);
+
+        this.board[y][x] = 0;
+        return score;
+    }
+
+    /**
+     * 计算位置价值（中心优先）
+     * @param {number} x - X坐标
+     * @param {number} y - Y坐标
+     * @returns {number}
+     */
+    calculatePositionValue(x, y) {
+        const center = Math.floor(this.BOARD_SIZE / 2);
+        const distanceFromCenter = Math.abs(x - center) + Math.abs(y - center);
+        
+        // 距离中心越近，价值越高
+        const maxDistance = center * 2;
+        return (maxDistance - distanceFromCenter) * 2;
+    }
+
+    /**
+     * 计算进攻性评分
+     * @param {number} x - X坐标
+     * @param {number} y - Y坐标
+     * @param {number} player - 玩家
+     * @returns {number}
+     */
+    calculateAttackScore(x, y, player) {
+        let score = 0;
+        const directions = [
+            { dx: 1, dy: 0 },   // 横向
+            { dx: 0, dy: 1 },   // 纵向
+            { dx: 1, dy: 1 },   // 左斜
+            { dx: 1, dy: -1 }   // 右斜
+        ];
+
+        for (const { dx, dy } of directions) {
+            const patternScore = this.analyzeLinePattern(x, y, dx, dy, player);
+            score += patternScore;
+        }
+
+        return score;
+    }
+
+    /**
+     * 计算防守性评分
+     * @param {number} x - X坐标
+     * @param {number} y - Y坐标
+     * @param {number} opponent - 对手
+     * @returns {number}
+     */
+    calculateDefenseScore(x, y, opponent) {
+        let score = 0;
+        const directions = [
+            { dx: 1, dy: 0 },   // 横向
+            { dx: 0, dy: 1 },   // 纵向
+            { dx: 1, dy: 1 },   // 左斜
+            { dx: 1, dy: -1 }   // 右斜
+        ];
+
+        for (const { dx, dy } of directions) {
+            const patternScore = this.analyzeLinePattern(x, y, dx, dy, opponent);
+            // 防守评分更高，因为阻止对手获胜更重要
+            score += patternScore * 1.5;
+        }
+
+        return score;
+    }
+
+    /**
+     * 分析线型模式
+     * @param {number} x - 中心X坐标
+     * @param {number} y - 中心Y坐标
+     * @param {number} dx - X方向增量
+     * @param {number} dy - Y方向增量
+     * @param {number} player - 玩家
+     * @returns {number}
+     */
+    analyzeLinePattern(x, y, dx, dy, player) {
+        const signature = this.getLineSignature(x, y, dx, dy, player, 9);
+        const centerIndex = 9;
+
+        // 寻找包含中心点的模式
+        let bestScore = 0;
+        const patterns = this.getAllPatterns();
+
+        for (const pattern of patterns) {
+            if (this.isPatternMatch(signature, pattern, centerIndex)) {
+                bestScore = Math.max(bestScore, pattern.score);
+            }
+        }
+
+        return bestScore;
+    }
+
+    /**
+     * 获取所有棋型模式
+     * @returns {Array}
+     */
+    getAllPatterns() {
+        return [
+            // 活五（必胜）
+            { name: 'live_five', pattern: /111110/, score: 50000, type: 'win' },
+            
+            // 冲四（一子获胜）
+            { name: 'four_one_side', pattern: /011110/, score: 10000, type: 'threat4' },
+            { name: 'four_one_side', pattern: /111100/, score: 10000, type: 'threat4' },
+            { name: 'four_one_side', pattern: /011111/, score: 10000, type: 'threat4' },
+            { name: 'four_one_side', pattern: /111110/, score: 10000, type: 'threat4' },
+            { name: 'four_one_side', pattern: /11111/, score: 10000, type: 'threat4' },
+            
+            // 活四（必胜）
+            { name: 'live_four', pattern: /011110/, score: 8000, type: 'win' },
+            
+            // 冲三
+            { name: 'three_one_side', pattern: /011100/, score: 1000, type: 'threat3' },
+            { name: 'three_one_side', pattern: /001110/, score: 1000, type: 'threat3' },
+            { name: 'three_one_side', pattern: /011100/, score: 1000, type: 'threat3' },
+            { name: 'three_one_side', pattern: /11100/, score: 1000, type: 'threat3' },
+            
+            // 活三
+            { name: 'live_three', pattern: /011010/, score: 800, type: 'live3' },
+            { name: 'live_three', pattern: /010110/, score: 800, type: 'live3' },
+            { name: 'live_three', pattern: /011100/, score: 800, type: 'live3' },
+            
+            // 跳三
+            { name: 'jump_three', pattern: /0101010/, score: 600, type: 'jump3' },
+            { name: 'jump_three', pattern: /101010/, score: 600, type: 'jump3' },
+            
+            // 活二
+            { name: 'live_two', pattern: /01100/, score: 150, type: 'live2' },
+            { name: 'live_two', pattern: /001100/, score: 150, type: 'live2' },
+            { name: 'live_two', pattern: /01010/, score: 150, type: 'live2' },
+            
+            // 冲二
+            { name: 'two_one_side', pattern: /01100/, score: 80, type: 'two1' },
+            { name: 'two_one_side', pattern: /00110/, score: 80, type: 'two1' },
+            
+            // 活一
+            { name: 'live_one', pattern: /0100/, score: 20, type: 'live1' },
+            { name: 'live_one', pattern: /0010/, score: 20, type: 'live1' },
+            { name: 'live_one', pattern: /1010/, score: 20, type: 'live1' }
+        ];
+    }
+
+    /**
+     * 检查模式匹配
+     * @param {string} signature - 线性签名
+     * @param {Object} pattern - 模式对象
+     * @param {number} centerIndex - 中心索引
+     * @returns {boolean}
+     */
+    isPatternMatch(signature, pattern, centerIndex) {
+        let index = signature.indexOf(pattern.pattern.source);
+        while (index !== -1) {
+            const startIndex = index;
+            const endIndex = index + pattern.pattern.source.length - 1;
+            
+            // 检查中心点是否在模式范围内
+            if (startIndex <= centerIndex && centerIndex <= endIndex) {
+                return true;
+            }
+            
+            index = signature.indexOf(pattern.pattern.source, index + 1);
+        }
+        return false;
+    }
+
+    /**
+     * 计算特殊棋型奖励
+     * @param {number} x - X坐标
+     * @param {number} y - Y坐标
+     * @param {number} player - 玩家
+     * @returns {number}
+     */
+    calculateSpecialPatternBonus(x, y, player) {
+        let bonus = 0;
+        
+        // 检查双威胁（同时形成两个获胜机会）
+        const threatCount = this.countSimultaneousThreats(x, y, player);
+        if (threatCount >= 2) {
+            bonus += 20000; // 双威胁奖励
+        } else if (threatCount === 1) {
+            bonus += 5000;  // 单威胁奖励
+        }
+        
+        // 检查造桥机会
+        if (this.canCreateBridge(x, y, player)) {
+            bonus += 3000;
+        }
+        
+        return bonus;
+    }
+
+    /**
+     * 计算同时威胁数
+     * @param {number} x - X坐标
+     * @param {number} y - Y坐标
+     * @param {number} player - 玩家
+     * @returns {number}
+     */
+    countSimultaneousThreats(x, y, player) {
+        let threatCount = 0;
+        const directions = [
+            { dx: 1, dy: 0 },
+            { dx: 0, dy: 1 },
+            { dx: 1, dy: 1 },
+            { dx: 1, dy: -1 }
+        ];
+
+        for (const { dx, dy } of directions) {
+            if (this.isThreatPattern(x, y, dx, dy, player)) {
+                threatCount++;
+            }
+        }
+
+        return threatCount;
+    }
+
+    /**
+     * 检查是否为威胁模式
+     * @param {number} x - X坐标
+     * @param {number} y - Y坐标
+     * @param {number} dx - X方向增量
+     * @param {number} dy - Y方向增量
+     * @param {number} player - 玩家
+     * @returns {boolean}
+     */
+    isThreatPattern(x, y, dx, dy, player) {
+        const signature = this.getLineSignature(x, y, dx, dy, player, 6);
+        const centerIndex = 6;
+        const threatPatterns = [
+            /011110/, /111100/, /001111/, /11111/, // 冲四
+            /011100/, /001110/, /11100/,           // 冲三
+            /011010/, /010110/, /011100/           // 活三
+        ];
+
+        for (const pattern of threatPatterns) {
+            if (this.isPatternMatch(signature, { pattern }, centerIndex)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 检查是否可以造桥
+     * @param {number} x - X坐标
+     * @param {number} y - Y坐标
+     * @param {number} player - 玩家
+     * @returns {boolean}
+     */
+    canCreateBridge(x, y, player) {
+        // 简化的造桥检查
         const directions = [
             { dx: 1, dy: 0 },
             { dx: 0, dy: 1 },
@@ -567,23 +840,19 @@ class GomokuGame {
         for (const { dx, dy } of directions) {
             const forward = this.getLine(x, y, dx, dy, player);
             const backward = this.getLine(x, y, -dx, -dy, player);
-            const total = 1 + forward + backward;
-
-            const forwardEmpty = this.getLine(x, y, dx, dy, 0);
-            const backwardEmpty = this.getLine(x, y, -dx, -dy, 0);
-            const openEnds = (forwardEmpty > 0 ? 1 : 0) + (backwardEmpty > 0 ? 1 : 0);
-
-            if (total === 4 && openEnds === 2) score += 10000;
-            else if (total === 4 && openEnds === 1) score += 1000;
-            else if (total === 3 && openEnds === 2) score += 500;
-            else if (total === 3 && openEnds === 1) score += 100;
-            else if (total === 2 && openEnds === 2) score += 50;
-            else if (total === 2 && openEnds === 1) score += 10;
-            else if (total === 1 && openEnds === 2) score += 5;
+            const total = forward + backward;
+            
+            // 如果在中间形成桥梁连接
+            if (total >= 2 && total <= 3) {
+                const forwardEmpty = this.getLine(x, y, dx, dy, 0);
+                const backwardEmpty = this.getLine(x, y, -dx, -dy, 0);
+                if (forwardEmpty > 0 && backwardEmpty > 0) {
+                    return true;
+                }
+            }
         }
 
-        this.board[y][x] = 0;
-        return score;
+        return false;
     }
 
     /**
@@ -620,8 +889,8 @@ class GomokuGame {
         const difficultyMap = {
             'BEGINNER': this.getAIMoveBeginner.bind(this),
             'NORMAL': this.getAIMoveNormal.bind(this),
-            'HARD': this.getAIMoveNormal.bind(this),
-            'HELL': this.getAIMoveNormal.bind(this)
+            'HARD': this.getAIMoveHard.bind(this),
+            'HELL': this.getAIMoveHell.bind(this)
         };
 
         const moveFunc = difficultyMap[difficulty] || difficultyMap['NORMAL'];
@@ -629,7 +898,7 @@ class GomokuGame {
     }
 
     /**
-     * 新手AI - 随机落子在候选位置
+     * 新手AI - 简单随机落子
      * @returns {{x: number, y: number}|null}
      */
     getAIMoveBeginner() {
@@ -643,7 +912,7 @@ class GomokuGame {
     }
 
     /**
-     * 普通AI - 基于评分的贪心算法（增强防守能力）
+     * 普通AI - 基于评分的贪心算法
      * @returns {{x: number, y: number}|null}
      */
     getAIMoveNormal() {
@@ -662,7 +931,85 @@ class GomokuGame {
             return opponentWin;
         }
 
-        const candidates = this.getCandidateMoves(2, 30);
+        return this.evaluateAndChooseBestMove(player, opponent, 1.0, 1.2);
+    }
+
+    /**
+     * 困难AI - 更强的攻防平衡
+     * @returns {{x: number, y: number}|null}
+     */
+    getAIMoveHard() {
+        const player = this.currentPlayer;
+        const opponent = player === 1 ? 2 : 1;
+
+        // 第一优先级：自己能赢就直接赢
+        const myWin = this.findWinningMove(player);
+        if (myWin) {
+            return myWin;
+        }
+
+        // 第二优先级：对手能赢就必须堵
+        const opponentWin = this.findWinningMove(opponent);
+        if (opponentWin) {
+            return opponentWin;
+        }
+
+        // 第三优先级：寻找双威胁机会
+        const doubleThreat = this.findDoubleThreatMove(player);
+        if (doubleThreat) {
+            return doubleThreat;
+        }
+
+        // 困难AI更注重进攻
+        return this.evaluateAndChooseBestMove(player, opponent, 1.3, 1.1);
+    }
+
+    /**
+     * 地狱AI - 最强AI，多步预判
+     * @returns {{x: number, y: number}|null}
+     */
+    getAIMoveHell() {
+        const player = this.currentPlayer;
+        const opponent = player === 1 ? 2 : 1;
+
+        // 第一优先级：自己能赢就直接赢
+        const myWin = this.findWinningMove(player);
+        if (myWin) {
+            return myWin;
+        }
+
+        // 第二优先级：对手能赢就必须堵
+        const opponentWin = this.findWinningMove(opponent);
+        if (opponentWin) {
+            return opponentWin;
+        }
+
+        // 第三优先级：寻找双威胁机会
+        const doubleThreat = this.findDoubleThreatMove(player);
+        if (doubleThreat) {
+            return doubleThreat;
+        }
+
+        // 第四优先级：多步预判
+        const multiStepMove = this.findBestMultiStepMove(player, opponent);
+        if (multiStepMove) {
+            return multiStepMove;
+        }
+
+        // 地狱AI进攻性最强
+        return this.evaluateAndChooseBestMove(player, opponent, 1.5, 1.0);
+    }
+
+    /**
+     * 评估并选择最佳移动
+     * @param {number} player - 当前玩家
+     * @param {number} opponent - 对手
+     * @param {number} attackWeight - 进攻权重
+     * @param {number} defenseWeight - 防守权重
+     * @returns {{x: number, y: number}|null}
+     */
+    evaluateAndChooseBestMove(player, opponent, attackWeight = 1.0, defenseWeight = 1.2) {
+        const candidates = this.getCandidateMoves(2, 50);
         if (candidates.length === 0) {
             return null;
         }
@@ -729,6 +1076,85 @@ class GomokuGame {
             return 1;
         }
         return 0;
+    }
+
+    /**
+     * 寻找双威胁移动
+     * @param {number} player - 当前玩家
+     * @returns {{x: number, y: number}|null}
+     */
+    findDoubleThreatMove(player) {
+        const candidates = this.getCandidateMoves(2, 50);
+        
+        for (const { x, y } of candidates) {
+            this.board[y][x] = player;
+            
+            // 计算在该位置落子后的威胁数
+            const threatCount = this.countSimultaneousThreats(x, y, player);
+            
+            this.board[y][x] = 0;
+            
+            if (threatCount >= 2) {
+                return { x, y };
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * 寻找最佳多步移动
+     * @param {number} player - 当前玩家
+     * @param {number} opponent - 对手
+     * @returns {{x: number, y: number}|null}
+     */
+    findBestMultiStepMove(player, opponent) {
+        // 简化的多步预判：选择能在下一步形成威胁的位置
+        const candidates = this.getCandidateMoves(2, 30);
+        let bestMove = null;
+        let bestFutureScore = -Infinity;
+        
+        for (const { x, y } of candidates) {
+            // 临时落子
+            this.board[y][x] = player;
+            
+            // 检查这步棋是否本身就能获胜
+            if (this.checkWin(x, y).hasWon) {
+                this.board[y][x] = 0;
+                return { x, y };
+            }
+            
+            // 寻找对手的可能响应
+            const opponentResponses = this.getCandidateMoves(1, 20);
+            let worstCaseScore = Infinity;
+            
+            for (const { x: ox, y: oy } of opponentResponses) {
+                this.board[oy][ox] = opponent;
+                
+                // 计算对手响应后的最优解
+                let myNextBest = -Infinity;
+                const myNextMoves = this.getCandidateMoves(1, 10);
+                
+                for (const { x: nx, y: ny } of myNextMoves) {
+                    this.board[ny][nx] = player;
+                    const score = this.evaluatePosition(nx, ny, player);
+                    this.board[ny][nx] = 0;
+                    myNextBest = Math.max(myNextBest, score);
+                }
+                
+                this.board[oy][ox] = 0;
+                worstCaseScore = Math.min(worstCaseScore, myNextBest);
+            }
+            
+            this.board[y][x] = 0;
+            
+            if (worstCaseScore > bestFutureScore) {
+                bestFutureScore = worstCaseScore;
+                bestMove = { x, y };
+            }
+        }
+        
+        return bestMove;
     }
 }
 
