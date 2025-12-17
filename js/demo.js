@@ -68,7 +68,7 @@ class InterfaceDemo {
 
         // 初始化UI控制器
         if (typeof UIController !== 'undefined') {
-            this.uiController = new UIController();
+            this.uiController = new UIController(this);
         }
 
         // 绑定事件
@@ -533,6 +533,19 @@ class InterfaceDemo {
             'HELL': '地狱'
         };
         return nameMap[difficulty] || '普通';
+    }
+
+    /**
+     * 更新AI难度设置
+     * @param {string} difficulty - 新的AI难度
+     */
+    updateDifficulty(difficulty) {
+        this.aiDifficulty = difficulty;
+        
+        // 如果是PvE或EvE模式，提示用户难度已更改
+        if (this.currentMode === 'PvE' || this.currentMode === 'EvE') {
+            GameUtils.showMessage(`AI难度已更新为 ${this.getDifficultyName(difficulty)}`, 'info', 1500);
+        }
     }
 
     /**
